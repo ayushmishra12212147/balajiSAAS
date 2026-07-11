@@ -40,11 +40,11 @@ export interface HMSConfig {
 
 const DEFAULT_CONFIG: HMSConfig = {
   database: {
-    host: "localhost",
+    host: "aws-1-ap-south-1.pooler.supabase.com",
     port: 5432,
-    username: "postgres",
-    password: "",
-    database: "hms",
+    username: "postgres.iiuowmruhqrwwbkxolwb",
+    password: "TempleBellBeforeSunrise@123",
+    database: "postgres",
   },
   hospital: {
     name: "Balaji Hospital",
