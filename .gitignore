@@ -79,3 +79,6 @@ next-env.d.ts
 *.tmp
 /uploads/
 /public/uploads/
+
+# ── Graphify (AI knowledge graph cache — generated) ───────
+/graphify-out/
