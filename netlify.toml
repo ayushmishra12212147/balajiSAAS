@@ -2,5 +2,9 @@
   command = "npx prisma generate && npm run build"
   publish = ".next"
 
+[build.environment]
+  SECRETS_SCAN_OMIT_PATHS = "prisma/seed.ts,prisma/update-admin.ts,prisma/flush-for-client.ts"
+  SECRETS_SCAN_OMIT_KEYS = "DEFAULT_ADMIN_EMAIL"
+
 [[plugins]]
   package = "@netlify/plugin-nextjs"
