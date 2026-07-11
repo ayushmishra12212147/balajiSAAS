@@ -72,7 +72,8 @@
         "from": ".next/standalone",
         "to": "app",
         "filter": [
-          "**/*"
+          "**/*",
+          "node_modules/**/*"
         ]
       },
       {
