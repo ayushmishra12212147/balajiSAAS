@@ -63,81 +63,55 @@ export const PUT = wrapAuthRoute(async (req: NextRequest, context: Record<string
   }
 
   const result = await prisma.$transaction(async (tx) => {
-    // 1. Fetch current permissions
+    // 1. Fetch current allowed permissions for auditing
     const current = await tx.permission.findMany({
       where: { userId },
     });
 
-    const currentMap = new Map<string, boolean>();
+    const previousState: Record<string, boolean> = {};
     current.forEach((p) => {
-      currentMap.set(`${p.module}:${p.action}`, p.isAllowed);
+      previousState[`${p.module}:${p.action}`] = p.isAllowed;
     });
 
-    const createdList: string[] = [];
-    const updatedList: string[] = [];
-    
-    // Track previous and new states for auditing
-    const auditDiff: { before: Record<string, boolean>; after: Record<string, boolean> } = {
-      before: {},
-      after: {},
-    };
+    // 2. Delete all existing permissions for the target user
+    await tx.permission.deleteMany({
+      where: { userId },
+    });
 
-    // 2. Loop through incoming permissions to sync diffs
-    for (const p of incoming) {
-      const key = `${p.module}:${p.action}`;
-      const hasKey = currentMap.has(key);
-      const currentAllowed = currentMap.get(key);
+    // 3. Filter incoming parameters to extract only allowed permissions
+    const allowedIncoming = incoming.filter((p) => p.isAllowed);
 
-      if (!hasKey) {
-        // Create if missing and isAllowed state is different from default (false)
-        if (p.isAllowed) {
-          await tx.permission.create({
-            data: {
-              userId,
-              module: p.module,
-              action: p.action,
-              isAllowed: true,
-            },
-          });
-          createdList.push(key);
-          auditDiff.before[key] = false;
-          auditDiff.after[key] = true;
-        }
-      } else if (currentAllowed !== p.isAllowed) {
-        // Update only if isAllowed state has changed
-        await tx.permission.update({
-          where: {
-            userId_module_action: {
-              userId,
-              module: p.module,
-              action: p.action,
-            },
-          },
-          data: {
-            isAllowed: p.isAllowed,
-          },
-        });
-        updatedList.push(key);
-        auditDiff.before[key] = currentAllowed ?? false;
-        auditDiff.after[key] = p.isAllowed;
-      }
-    }
-
-    if (createdList.length > 0 || updatedList.length > 0) {
-      await logAdminAction({
-        action: "PERMISSIONS_SYNC",
-        resource: "Permission",
-        entityId: userId,
-        previousState: auditDiff.before,
-        newState: auditDiff.after,
-        description: `Synchronized permissions for ${targetEmployee.email}. Created: ${createdList.length}, Updated: ${updatedList.length}.`,
+    // 4. Batch insert all allowed permissions using createMany
+    if (allowedIncoming.length > 0) {
+      await tx.permission.createMany({
+        data: allowedIncoming.map((p) => ({
+          userId,
+          module: p.module,
+          action: p.action,
+          isAllowed: true,
+        })),
       });
     }
 
+    // 5. Track state changes for security audit trail logging
+    const newState: Record<string, boolean> = {};
+    allowedIncoming.forEach((p) => {
+      newState[`${p.module}:${p.action}`] = true;
+    });
+
+    await logAdminAction({
+      action: "PERMISSIONS_SYNC",
+      resource: "Permission",
+      entityId: userId,
+      previousState,
+      newState,
+      description: `Synchronized permissions for ${targetEmployee.email}. Total allowed: ${allowedIncoming.length}.`,
+    });
+
     return {
       message: "Permissions synchronized successfully",
-      createdCount: createdList.length,
-      updatedCount: updatedList.length,
+      createdCount: allowedIncoming.length,
+      updatedCount: 0,
     };
   });
 
