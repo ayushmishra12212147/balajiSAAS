@@ -1,0 +1,1951 @@
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+// ==========================================
+// PRISMA SYSTEM ENUMS
+// ==========================================
+
+enum EmployeeRole {
+  SUPER_ADMIN
+  HOSPITAL_ADMIN
+  EMPLOYEE
+}
+
+enum PaymentMode {
+  CASH
+  UPI
+  CARD
+  CHEQUE
+  BANK_TRANSFER
+}
+
+enum Gender {
+  MALE
+  FEMALE
+  OTHER
+}
+
+enum BloodGroup {
+  A_POSITIVE
+  A_NEGATIVE
+  B_POSITIVE
+  B_NEGATIVE
+  AB_POSITIVE
+  AB_NEGATIVE
+  O_POSITIVE
+  O_NEGATIVE
+}
+
+enum OTType {
+  MINOR
+  MAJOR
+}
+
+enum LaboratoryStatus {
+  SCHEDULED
+  SAMPLE_COLLECTED
+  COMPLETED
+  CANCELLED
+}
+
+enum RadiologyStatus {
+  SCHEDULED
+  COMPLETED
+  CANCELLED
+}
+
+enum InvoiceStatus {
+  PENDING
+  PAID
+  PARTIALLY_PAID
+  CANCELLED
+  REFUNDED
+}
+
+enum BillingStatus {
+  PENDING
+  INVOICED
+  WAIVED
+  CANCELLED
+}
+
+enum PharmacyCustomerType {
+  WALK_IN
+  PATIENT
+}
+
+enum RoomType {
+  GENERAL_WARD
+  ICU
+  SEMI_PRIVATE
+  PRIVATE
+}
+
+enum BedStatus {
+  AVAILABLE
+  OCCUPIED
+  MAINTENANCE
+}
+
+enum DeliveryType {
+  NORMAL
+  CESAREAN
+  STILL_BIRTH
+}
+
+enum DeathLocationType {
+  EMERGENCY
+  IPD
+  DEAD_ON_ARRIVAL
+}
+
+enum MaritalStatus {
+  SINGLE
+  MARRIED
+  DIVORCED
+  WIDOWED
+}
+
+enum ChargeSourceModule {
+  OPD
+  IPD
+  OT
+  LABORATORY
+  RADIOLOGY
+  PHARMACY
+  MANUAL
+}
+
+// ==========================================
+// 1. TENANT, SEQUENCES & CONFIGURATIONS
+// ==========================================
+
+model Hospital {
+  id                    String    @id @default(uuid())
+  name                  String    @db.VarChar(150)
+  code                  String    @unique @db.VarChar(10)
+  phone                 String    @db.VarChar(20)
+  email                 String    @db.VarChar(100)
+  address               String    @db.Text
+  gstNumber             String?   @db.VarChar(50)
+  registrationNumber    String?   @db.VarChar(100)
+  website               String?   @db.VarChar(150)
+  logoUrl               String?   @db.Text
+  footerText            String?   @db.Text
+  stateInsuranceLicense String?   @db.VarChar(100)
+  currentVersion        String    @default("2.0.0") @db.VarChar(20)
+
+  // Standard Metadata
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+  createdBy             String?   @db.Uuid
+  updatedBy             String?   @db.Uuid
+  isDeleted             Boolean   @default(false)
+  deletedAt             DateTime?
+  deletedBy             String?   @db.Uuid
+
+  // Tenant Back-Relations
+  employees             Employee[]
+  patients              Patient[]
+  opdConsultations      OPDConsultation[]
+  ipdAdmissions         IPDAdmission[]
+  invoices              Invoice[]
+  labOrders             LabTestOrder[]
+  pharmacyInvoices      PharmacyInvoice[]
+  otBookings            OperationTheater[]
+  births                BirthRegistration[]
+  deaths                DeathRegistration[]
+  printTemplates        PrintTemplate[]
+  deposits              PatientDeposit[]
+
+  @@map("hospitals")
+}
+
+model SystemSetting {
+  id           String    @id @default(uuid())
+  settingKey   String    @unique @db.VarChar(100)
+  settingValue String    @db.Text
+  dataType     String    @default("STRING") @db.VarChar(30) // "STRING", "INTEGER", "BOOLEAN", "JSON"
+  category     String    @default("GENERAL") @db.VarChar(50)
+  description  String?   @db.Text
+
+  // Standard Metadata
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+  createdBy    String?   @db.Uuid
+  updatedBy    String?   @db.Uuid
+  isDeleted    Boolean   @default(false)
+  deletedAt    DateTime?
+  deletedBy    String?   @db.Uuid
+
+  @@map("system_settings")
+}
+
+model Sequence {
+  sequenceName    String   @id @db.VarChar(100)
+  currentValue    BigInt   @default(0)
+  prefix          String   @db.VarChar(20)
+  paddingLength   Int      @default(5)
+  isActive        Boolean  @default(true)
+  description     String?  @db.Text
+  lastGeneratedAt DateTime @default(now()) @updatedAt
+
+  @@map("sequences")
+}
+
+// ==========================================
+// 2. STAFF, IDENTITY & SESSION REGISTRY
+// ==========================================
+
+model Department {
+  id              String            @id @default(uuid())
+  name            String            @db.VarChar(100)
+  code            String            @unique @db.VarChar(10)
+  description     String?           @db.Text
+
+  // Relationships
+  employees       Employee[]
+  opdConsultations OPDConsultation[]
+  ipdAdmissions   IPDAdmission[]
+  otBookings      OperationTheater[]
+  consultations   IPDConsultation[]
+
+  // Standard Metadata
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
+  createdBy       String?           @db.Uuid
+  updatedBy       String?           @db.Uuid
+  isDeleted       Boolean           @default(false)
+  deletedAt       DateTime?
+  deletedBy       String?           @db.Uuid
+
+  @@map("departments")
+}
+
+model Employee {
+  id                String            @id @default(uuid())
+  name              String            @db.VarChar(100) @default("Employee")
+  employeeCode      String            @unique @db.VarChar(50)
+  email             String            @unique @db.VarChar(100)
+  passwordHash      String            @db.VarChar(255)
+  role              EmployeeRole
+  designation       String            @db.VarChar(100)
+  departmentId      String?
+  hospitalId        String
+  mobileNumber      String            @db.VarChar(20)
+  joiningDate       DateTime
+  isActive          Boolean           @default(true)
+  failedLoginCount  Int               @default(0)
+  lockedUntil       DateTime?
+  passwordChangedAt DateTime          @default(now())
+  lastLoginAt       DateTime?
+  lastLoginIp       String?           @db.VarChar(45)
+
+  // Standard Metadata
+  createdAt         DateTime          @default(now())
+  updatedAt         DateTime          @updatedAt
+  createdBy         String?           @db.Uuid
+  updatedBy         String?           @db.Uuid
+  isDeleted         Boolean           @default(false)
+  deletedAt         DateTime?
+  deletedBy         String?           @db.Uuid
+
+  // Relationships
+  hospital          Hospital          @relation(fields: [hospitalId], references: [id], onDelete: Restrict)
+  department        Department?       @relation(fields: [departmentId], references: [id], onDelete: Restrict)
+  doctor            Doctor?
+  sessions          Session[]
+  permissions       Permission[]
+
+  // Action Registry Logging Links
+  cancelledOpds     OPDConsultation[] @relation("OPDCancelledBy")
+  cancelledIpds     IPDAdmission[]    @relation("IPDCancelledBy")
+  completedOts      OperationTheater[] @relation("OTCompletedBy")
+  cancelledOts      OperationTheater[] @relation("OTCancelledBy")
+  paymentsReceived  Payment[]         @relation("PaymentReceivedBy")
+  refundsProcessed  Refund[]          @relation("RefundProcessedBy")
+  pharmacyPurchases PharmacyPurchaseOrder[] @relation("PharmacyPurchaseReceivedBy")
+  pharmacyReceived  PharmacyInvoice[] @relation("PharmacyInvoiceReceivedBy")
+  pharmacyCancelled PharmacyInvoice[] @relation("PharmacyInvoiceCancelledBy")
+  stockAdjustments  PharmacyStockAdjustment[]
+  transfersManaged  BedTransferHistory[] @relation("BedTransferBy")
+  cancelledInvoices Invoice[]         @relation("InvoiceCancelledBy")
+  docAssignments    DoctorAssignmentHistory[] @relation("DocAssignChangedBy")
+  ipdDischarges     IPDAdmission[]    @relation("IPDDischargedBy")
+  audits            Audit[]
+  printHistories    PrintHistory[]    @relation("PrintedByEmployee")
+  handoversReceived IPDHandover[]
+
+  @@index([email])
+  @@index([role])
+  @@index([hospitalId])
+  @@map("employees")
+}
+
+model Doctor {
+  id                 String            @id // Linked 1:1 with Employee.id
+  registrationNumber String            @unique @db.VarChar(50)
+  qualification      String            @db.VarChar(150)
+  specialization     String            @db.VarChar(100)
+  consultationFee    Decimal           @db.Decimal(12, 2)
+  roomNumber         String?           @db.VarChar(20)
+  dutySchedule       Json?
+
+  // Standard Metadata
+  createdAt          DateTime          @default(now())
+  updatedAt          DateTime          @updatedAt
+  createdBy          String?           @db.Uuid
+  updatedBy          String?           @db.Uuid
+  isDeleted          Boolean           @default(false)
+  deletedAt          DateTime?
+  deletedBy          String?           @db.Uuid
+
+  // Relationships
+  employee           Employee          @relation(fields: [id], references: [id], onDelete: Cascade)
+  opdConsultations   OPDConsultation[]
+  ipdAdmissions      IPDAdmission[]
+  assignedOts        OperationTheater[] @relation("OTPrimarySurgeon")
+  assistedOts        OperationTheater[] @relation("OTAssistantSurgeon")
+  birthsAttended     BirthRegistration[]
+  deathsAttended     DeathRegistration[]
+  labOrders          LabTestOrder[]
+  radiologyOrders    RadiologyScanOrder[]
+  assignmentFrom     DoctorAssignmentHistory[] @relation("DocAssignPrev")
+  assignmentTo       DoctorAssignmentHistory[] @relation("DocAssignNew")
+  referredAdmissions IPDAdmission[]            @relation("IPDReferredBy")
+  rounds             IPDDoctorRound[]
+  consultations      IPDConsultation[]
+
+  @@map("doctors")
+}
+
+model Session {
+  id        String   @id @default(uuid())
+  userId    String
+  expiresAt DateTime
+  ipAddress String?  @db.VarChar(45)
+  userAgent String?  @db.Text
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user      Employee @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([expiresAt])
+  @@map("sessions")
+}
+
+model Permission {
+  id        String   @id @default(uuid())
+  userId    String
+  module    String   @db.VarChar(50)
+  action    String   @db.VarChar(50)
+  isAllowed Boolean  @default(false)
+
+  // Standard Metadata
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  createdBy String?  @db.Uuid
+  updatedBy String?  @db.Uuid
+
+  user      Employee @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, module, action])
+  @@map("permissions")
+}
+
+// ==========================================
+// 3. PATIENT REGISTRY (NORMALIZED)
+// ==========================================
+
+model Patient {
+  id                String                 @id @default(uuid())
+  uhid              String                 @unique @db.VarChar(30)
+  name              String                 @db.VarChar(150)
+  phone             String                 @db.VarChar(20)
+  alternatePhone    String?                @db.VarChar(20)
+  email             String?                @db.VarChar(100)
+  dob               DateTime               @db.Date
+  gender            Gender
+  bloodGroup        BloodGroup?
+  aadhaarNumber     String?                @unique @db.VarChar(12)
+  occupation        String?                @db.VarChar(100)
+  photoUrl          String?                @db.Text
+  maritalStatus     MaritalStatus?
+  nationality       String?                @default("Indian") @db.VarChar(100)
+  remarks           String?                @db.Text
+  hospitalId        String
+  version           Int                    @default(1)
+
+  // Standard Metadata
+  createdAt         DateTime               @default(now())
+  updatedAt         DateTime               @updatedAt
+  createdBy         String?                @db.Uuid
+  updatedBy         String?                @db.Uuid
+  isDeleted         Boolean                @default(false)
+  deletedAt         DateTime?
+  deletedBy         String?                @db.Uuid
+
+  // Relationships
+  hospital          Hospital               @relation(fields: [hospitalId], references: [id], onDelete: Restrict)
+  address           PatientAddress?
+  emergencyContact  PatientEmergencyContact?
+  referrals         PatientReferral[]
+  opdConsultations  OPDConsultation[]
+  ipdAdmissions     IPDAdmission[]
+  otBookings        OperationTheater[]
+  labOrders         LabTestOrder[]
+  radiologyOrders   RadiologyScanOrder[]
+  billableCharges   BillableCharge[]
+  invoices          Invoice[]
+  pharmacyInvoices  PharmacyInvoice[]
+  motherBirths      BirthRegistration[]    @relation("MotherPatient")
+  deaths            DeathRegistration[]
+  deposits          PatientDeposit[]
+
+  @@index([uhid])
+  @@index([phone])
+  @@index([aadhaarNumber])
+  @@index([name])
+  @@index([hospitalId])
+  @@index([createdAt])
+  @@map("patients")
+}
+
+model PatientAddress {
+  id          String   @id @default(uuid())
+  patientId   String   @unique
+  addressLine String   @db.Text
+  city        String   @db.VarChar(100)
+  state       String   @db.VarChar(100)
+  pincode     String   @db.VarChar(15)
+
+  // Standard Metadata
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  createdBy   String?  @db.Uuid
+  updatedBy   String?  @db.Uuid
+  isDeleted   Boolean  @default(false)
+  deletedAt   DateTime?
+  deletedBy   String?  @db.Uuid
+
+  patient     Patient  @relation(fields: [patientId], references: [id], onDelete: Cascade)
+
+  @@map("patient_addresses")
+}
+
+model PatientEmergencyContact {
+  id        String   @id @default(uuid())
+  patientId String   @unique
+  name      String   @db.VarChar(150)
+  phone     String   @db.VarChar(20)
+  relation  String   @db.VarChar(50)
+
+  // Standard Metadata
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  createdBy String?  @db.Uuid
+  updatedBy String?  @db.Uuid
+  isDeleted Boolean  @default(false)
+  deletedAt DateTime?
+  deletedBy String?  @db.Uuid
+
+  patient   Patient  @relation(fields: [patientId], references: [id], onDelete: Cascade)
+
+  @@map("patient_emergency_contacts")
+}
+
+model PatientReferral {
+  id                 String   @id @default(uuid())
+  patientId          String
+  referralType       String   @db.VarChar(50)  // "DOCTOR", "CLINIC", "HOSPITAL", "SELF"
+  referralName       String   @db.VarChar(150)
+  referralNotes      String?  @db.Text
+
+  // Standard Metadata
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+  createdBy          String?  @db.Uuid
+  updatedBy          String?  @db.Uuid
+  isDeleted          Boolean  @default(false)
+  deletedAt          DateTime?
+  deletedBy          String?  @db.Uuid
+
+  patient            Patient  @relation(fields: [patientId], references: [id], onDelete: Cascade)
+
+  @@map("patient_referrals")
+}
+
+// ==========================================
+// 4. WARD & BED ALLOCATION
+// ==========================================
+
+model Building {
+  id        String   @id @default(uuid())
+  name      String   @db.VarChar(100)
+  code      String   @unique @db.VarChar(20)
+  isDeleted Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  floors    Floor[]
+
+  @@map("buildings")
+}
+
+model Floor {
+  id         String   @id @default(uuid())
+  name       String   @db.VarChar(100)
+  buildingId String
+  isDeleted  Boolean  @default(false)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+  building   Building @relation(fields: [buildingId], references: [id], onDelete: Cascade)
+  wards      Ward[]
+
+  @@map("floors")
+}
+
+model Ward {
+  id        String   @id @default(uuid())
+  name      String   @db.VarChar(100)
+  code      String   @unique @db.VarChar(20)
+  floorId   String
+  isDeleted Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  floor     Floor    @relation(fields: [floorId], references: [id], onDelete: Cascade)
+  rooms     BedRoom[]
+
+  @@map("wards")
+}
+
+model BedRoom {
+  id           String    @id @default(uuid())
+  roomNumber   String    @unique @db.VarChar(20)
+  roomType     RoomType
+  chargePerDay Decimal   @db.Decimal(12, 2)
+  wardId       String
+
+  // Standard Metadata
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+  createdBy    String?   @db.Uuid
+  updatedBy    String?   @db.Uuid
+  isDeleted    Boolean   @default(false)
+  deletedAt    DateTime?
+  deletedBy    String?   @db.Uuid
+
+  // Relationships
+  ward         Ward      @relation(fields: [wardId], references: [id], onDelete: Cascade)
+  beds         Bed[]
+
+  @@map("bed_rooms")
+}
+
+model Bed {
+  id           String               @id @default(uuid())
+  roomId       String
+  bedNumber    String               @db.VarChar(20)
+  status       BedStatus            @default(AVAILABLE)
+
+  // Standard Metadata
+  createdAt    DateTime             @default(now())
+  updatedAt    DateTime             @updatedAt
+  createdBy    String?              @db.Uuid
+  updatedBy    String?              @db.Uuid
+  isDeleted    Boolean              @default(false)
+  deletedAt    DateTime?
+  deletedBy    String?              @db.Uuid
+
+  // Relationships
+  room         BedRoom              @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  admissions   IPDAdmission[]
+  transfersFrom BedTransferHistory[] @relation("TransferBedPrev")
+  transfersTo   BedTransferHistory[] @relation("TransferBedNew")
+
+  @@unique([roomId, bedNumber])
+  @@map("beds")
+}
+
+model BedTransferHistory {
+  id             String       @id @default(uuid())
+  ipdAdmissionId String
+  previousBedId  String?
+  newBedId       String
+  transferDate   DateTime     @default(now())
+  transferReason String?      @db.Text
+  transferredBy  String
+
+  // Standard Metadata
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+  createdBy      String?      @db.Uuid
+  updatedBy      String?      @db.Uuid
+  isDeleted      Boolean      @default(false)
+  deletedAt      DateTime?
+  deletedBy      String?      @db.Uuid
+
+  // Relationships
+  ipdAdmission   IPDAdmission @relation(fields: [ipdAdmissionId], references: [id], onDelete: Cascade)
+  previousBed    Bed?         @relation("TransferBedPrev", fields: [previousBedId], references: [id], onDelete: Restrict)
+  newBed         Bed          @relation("TransferBedNew", fields: [newBedId], references: [id], onDelete: Restrict)
+  manager        Employee     @relation("BedTransferBy", fields: [transferredBy], references: [id], onDelete: Restrict)
+
+  @@map("bed_transfer_history")
+}
+
+// ==========================================
+// 5. CLINICAL VISIT LIFE-CYCLES
+// ==========================================
+
+model OPDConsultation {
+  id                 String               @id @default(uuid())
+  opdId              String               @unique @db.VarChar(30)
+  patientId          String
+  doctorId           String
+  departmentId       String
+  hospitalId         String
+  consultationDate   DateTime
+  depositAmount      Decimal              @default(0.00) @db.Decimal(12, 2)
+  originalFee        Decimal              @db.Decimal(12, 2)
+  appliedFee         Decimal              @db.Decimal(12, 2)
+  overrideReason     String?              @db.Text
+  tokenNumber        Int
+  version            Int                  @default(1)
+  symptoms           String?              @db.Text
+
+  // Lifecycle Cancellations
+  cancelledAt        DateTime?
+  cancelledBy        String?
+  cancellationReason String?              @db.Text
+
+  // Standard Metadata
+  createdAt          DateTime             @default(now())
+  updatedAt          DateTime             @updatedAt
+  createdBy          String?              @db.Uuid
+  updatedBy          String?              @db.Uuid
+  isDeleted          Boolean              @default(false)
+  deletedAt          DateTime?
+  deletedBy          String?              @db.Uuid
+
+  // Relationships
+  hospital           Hospital             @relation(fields: [hospitalId], references: [id], onDelete: Restrict)
+  patient            Patient              @relation(fields: [patientId], references: [id], onDelete: Restrict)
+  doctor             Doctor               @relation(fields: [doctorId], references: [id], onDelete: Restrict)
+  department         Department           @relation(fields: [departmentId], references: [id], onDelete: Restrict)
+  canceller          Employee?            @relation("OPDCancelledBy", fields: [cancelledBy], references: [id], onDelete: Restrict)
+  labOrders          LabTestOrder[]
+  radiologyOrders    RadiologyScanOrder[]
+  otBookings         OperationTheater[]
+  deposits           PatientDeposit[]
+
+  @@index([opdId])
+  @@index([patientId])
+  @@index([doctorId])
+  @@index([consultationDate])
+  @@index([hospitalId])
+  @@index([doctorId, consultationDate])
+  @@map("opd_consultations")
+}
+
+model IPDAdmission {
+  id                        String                    @id @default(uuid())
+  ipdId                     String                    @unique @db.VarChar(30)
+  patientId                 String
+  bedId                     String
+  primaryDoctorId           String
+  departmentId              String
+  hospitalId                String
+  admissionDate             DateTime
+  dischargeDate             DateTime?
+  dischargeSummary          String?                   @db.Text
+  dischargeBy               String?
+  isDeceased                Boolean                   @default(false)
+  version                   Int                       @default(1)
+
+  // Newly Added Stay Management Fields
+  codeStatus                String?                   @default("FULL_CODE") // FULL_CODE, DNR
+  isolationStatus           String?                   @default("NONE")      // NONE, CONTACT, DROPLET, AIRBORNE
+  referredByDoctorId        String?
+  isMLC                     Boolean                   @default(false)
+  mlcNumber                 String?
+  admissionSource           String?                   // DIRECT, OPD_REFERRAL, EMERGENCY, DOCTOR_REFERRAL
+  admissionCategory         String?                   @default("GENERAL")   // GENERAL, PRIVATE, INSURANCE, CORPORATE, GOVERNMENT_SCHEME
+  initialDepositRequired    Float?                    @default(0)
+  admissionReason           String?                   @db.Text
+  status                    String                    @default("ADMITTED")  // ADMITTED, TRANSFERRED, DISCHARGED, LAMA, DAMA, REFERRED, EXPIRED
+  dischargeType             String?
+  finalDiagnosis            String?
+  treatmentSummary          String?                   @db.Text
+  conditionAtDischarge      String?
+  followUpInstructions      String?                   @db.Text
+
+  // Lifecycle Cancellations
+  cancelledAt               DateTime?
+  cancelledBy               String?
+  cancellationReason        String?                   @db.Text
+
+  // Standard Metadata
+  createdAt                 DateTime                  @default(now())
+  updatedAt                 DateTime                  @updatedAt
+  createdBy                 String?                   @db.Uuid
+  updatedBy                 String?                   @db.Uuid
+  isDeleted                 Boolean                   @default(false)
+  deletedAt                 DateTime?
+  deletedBy                 String?                   @db.Uuid
+
+  // Relationships
+  hospital                  Hospital                  @relation(fields: [hospitalId], references: [id], onDelete: Restrict)
+  patient                   Patient                   @relation(fields: [patientId], references: [id], onDelete: Restrict)
+  bed                       Bed                       @relation(fields: [bedId], references: [id], onDelete: Restrict)
+  primaryDoctor             Doctor                    @relation(fields: [primaryDoctorId], references: [id], onDelete: Restrict)
+  department                Department                @relation(fields: [departmentId], references: [id], onDelete: Restrict)
+  canceller                 Employee?                 @relation("IPDCancelledBy", fields: [cancelledBy], references: [id], onDelete: Restrict)
+  discharger                Employee?                 @relation("IPDDischargedBy", fields: [dischargeBy], references: [id], onDelete: Restrict)
+  referredByDoctor          Doctor?                   @relation("IPDReferredBy", fields: [referredByDoctorId], references: [id], onDelete: Restrict)
+  doctorAssignments         DoctorAssignmentHistory[]
+  bedTransfers              BedTransferHistory[]
+  otBookings                OperationTheater[]
+  births                    BirthRegistration[]
+  labOrders                 LabTestOrder[]
+  radiologyOrders           RadiologyScanOrder[]
+  deaths                    DeathRegistration[]
+  dischargeSummaryRevisions DischargeSummaryRevision[]
+
+  // Newly Added Stay Management Relations
+  attendants                IPDAttendant[]
+  timelineEvents            IPDTimelineEvent[]
+  vitals                    IPDVitals[]
+  rounds                    IPDDoctorRound[]
+  progressNotes             IPDProgressNote[]
+  treatmentOrders           IPDTreatmentOrder[]
+  intakeOutputs             IPDIntakeOutput[]
+  consultations             IPDConsultation[]
+  handovers                 IPDHandover[]
+  nursingTasks              IPDNursingTask[]
+  attachments               IPDClinicalAttachment[]
+
+  @@index([ipdId])
+  @@index([patientId])
+  @@index([bedId])
+  @@index([admissionDate])
+  @@index([hospitalId])
+  @@map("ipd_admissions")
+}
+
+// ----------------------------------------------------
+// NEW INPATIENT CLINICAL MODELS
+// ----------------------------------------------------
+
+model IPDAttendant {
+  id             String       @id @default(uuid())
+  ipdAdmissionId String
+  name           String
+  relationship   String
+  mobile         String
+  isActive       Boolean      @default(true)
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+  isDeleted      Boolean      @default(false)
+  ipdAdmission   IPDAdmission @relation(fields: [ipdAdmissionId], references: [id], onDelete: Restrict)
+
+  @@index([ipdAdmissionId])
+  @@map("ipd_attendants")
+}
+
+model IPDTimelineEvent {
+  id             String       @id @default(uuid())
+  ipdAdmissionId String
+  eventType      String       // ADMISSION, VITALS, ROUND, NOTE, ORDER, INTAKE_OUTPUT, CONSULT, HANDOVER, BED_TRANSFER, DISCHARGE
+  description    String       @db.Text
+  recordedBy     String
+  createdAt      DateTime     @default(now())
+  ipdAdmission   IPDAdmission @relation(fields: [ipdAdmissionId], references: [id], onDelete: Restrict)
+
+  @@index([ipdAdmissionId])
+  @@map("ipd_timeline_events")
+}
+
+model IPDVitals {
+  id             String       @id @default(uuid())
+  ipdAdmissionId String
+  temperature    Float?       // Temp (°F)
+  pulse          Int?         // Pulse (bpm)
+  systolicBP     Int?         // Systolic BP
+  diastolicBP    Int?         // Diastolic BP
+  spo2           Int?         // SpO2 (%)
+  respiratoryRate Int?        // Resp Rate
+  weight         Float?       // Weight (kg)
+  height         Float?       // Height (cm)
+  bloodSugar     Int?         // RBS
+  recordedBy     String
+  createdAt      DateTime     @default(now())
+  isDeleted      Boolean      @default(false)
+  ipdAdmission   IPDAdmission @relation(fields: [ipdAdmissionId], references: [id], onDelete: Restrict)
+
+  @@index([ipdAdmissionId])
+  @@map("ipd_vitals")
+}
+
+model IPDDoctorRound {
+  id             String       @id @default(uuid())
+  ipdAdmissionId String
+  doctorId       String
+  condition      String       @db.Text // Patient Condition
+  findings       String       @db.Text // Clinical Findings
+  recommendations String      @db.Text // Recommendations
+  recordedBy     String
+  createdAt      DateTime     @default(now())
+  isDeleted      Boolean      @default(false)
+  ipdAdmission   IPDAdmission @relation(fields: [ipdAdmissionId], references: [id], onDelete: Restrict)
+  doctor         Doctor       @relation(fields: [doctorId], references: [id], onDelete: Restrict)
+
+  @@index([ipdAdmissionId])
+  @@index([doctorId])
+  @@map("ipd_doctor_rounds")
+}
+
+model IPDProgressNote {
+  id              String       @id @default(uuid())
+  ipdAdmissionId  String
+  noteType        String       // DOCTOR, NURSE, CONSULTANT
+  content         String       @db.Text
+  version         Int          @default(1)
+  isAmended       Boolean      @default(false)
+  amendmentReason String?      @db.Text
+  parentNoteId    String?      // Link for amendment versioning
+  recordedBy      String
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+  isDeleted       Boolean      @default(false)
+  ipdAdmission    IPDAdmission @relation(fields: [ipdAdmissionId], references: [id], onDelete: Restrict)
+
+  @@index([ipdAdmissionId])
+  @@map("ipd_progress_notes")
+}
+
+model IPDTreatmentOrder {
+  id             String       @id @default(uuid())
+  ipdAdmissionId String
+  orderType      String       // MEDICATION, LAB, RADIOLOGY, PROCEDURE, DIET, GENERAL
+  priority       String       @default("ROUTINE") // ROUTINE, URGENT, STAT
+  description    String       @db.Text
+  status         String       @default("PENDING") // PENDING, IN_PROGRESS, COMPLETED, CANCELLED
+  isVerified     Boolean      @default(false)
+  verifiedBy     String?
+  verifiedAt     DateTime?
+  recordedBy     String
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+  isDeleted      Boolean      @default(false)
+  ipdAdmission   IPDAdmission @relation(fields: [ipdAdmissionId], references: [id], onDelete: Restrict)
+
+  @@index([ipdAdmissionId])
+  @@map("ipd_treatment_orders")
+}
+
+model IPDIntakeOutput {
+  id             String       @id @default(uuid())
+  ipdAdmissionId String
+  intakeMl       Int?
+  intakeType     String?      // ORAL, IV_FLUID, TUBE_FEED, OTHER
+  outputMl       Int?
+  outputType     String?      // URINE, DRAIN, VOMIT, STOOL, OTHER
+  remarks        String?      @db.Text
+  recordedBy     String
+  createdAt      DateTime     @default(now())
+  isDeleted      Boolean      @default(false)
+  ipdAdmission   IPDAdmission @relation(fields: [ipdAdmissionId], references: [id], onDelete: Restrict)
+
+  @@index([ipdAdmissionId])
+  @@map("ipd_intake_output")
+}
+
+model IPDConsultation {
+  id                 String       @id @default(uuid())
+  ipdAdmissionId     String
+  targetDepartmentId String
+  targetDoctorId     String?
+  reason             String       @db.Text
+  urgency            String       @default("ROUTINE") // ROUTINE, URGENT, STAT
+  status             String       @default("REQUESTED") // REQUESTED, ACCEPTED, COMPLETED, DECLINED
+  completionNotes    String?      @db.Text
+  recordedBy         String
+  createdAt          DateTime     @default(now())
+  updatedAt          DateTime     @updatedAt
+  isDeleted          Boolean      @default(false)
+  ipdAdmission       IPDAdmission @relation(fields: [ipdAdmissionId], references: [id], onDelete: Restrict)
+  targetDepartment   Department   @relation(fields: [targetDepartmentId], references: [id], onDelete: Restrict)
+  targetDoctor       Doctor?      @relation(fields: [targetDoctorId], references: [id], onDelete: Restrict)
+
+  @@index([ipdAdmissionId])
+  @@index([targetDepartmentId])
+  @@index([targetDoctorId])
+  @@map("ipd_consultations_clinical")
+}
+
+model IPDHandover {
+  id               String       @id @default(uuid())
+  ipdAdmissionId   String
+  recipientUserId  String
+  conditionSummary String       @db.Text
+  checklist        String       @db.Text
+  remarks          String?      @db.Text
+  recordedBy       String
+  createdAt        DateTime     @default(now())
+  isDeleted        Boolean      @default(false)
+  ipdAdmission     IPDAdmission @relation(fields: [ipdAdmissionId], references: [id], onDelete: Restrict)
+  recipientUser    Employee     @relation(fields: [recipientUserId], references: [id], onDelete: Restrict)
+
+  @@index([ipdAdmissionId])
+  @@index([recipientUserId])
+  @@map("ipd_handovers")
+}
+
+model IPDNursingTask {
+  id             String       @id @default(uuid())
+  ipdAdmissionId String
+  description    String       @db.Text
+  scheduledTime  DateTime
+  status         String       @default("PENDING") // PENDING, COMPLETED, CANCELLED
+  recordedBy     String
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+  isDeleted      Boolean      @default(false)
+  ipdAdmission   IPDAdmission @relation(fields: [ipdAdmissionId], references: [id], onDelete: Restrict)
+
+  @@index([ipdAdmissionId])
+  @@map("ipd_nursing_tasks")
+}
+
+model IPDClinicalAttachment {
+  id             String       @id @default(uuid())
+  ipdAdmissionId String
+  documentType   String       // ECG, WOUND_PHOTO, REFERRAL_NOTE, OUTSIDE_PRESCRIPTION, OTHER
+  fileUrl        String       @db.Text // stores Base64 string directly
+  description    String?      @db.Text
+  recordedBy     String
+  createdAt      DateTime     @default(now())
+  isDeleted      Boolean      @default(false)
+  ipdAdmission   IPDAdmission @relation(fields: [ipdAdmissionId], references: [id], onDelete: Restrict)
+
+  @@index([ipdAdmissionId])
+  @@map("ipd_clinical_attachments")
+}
+
+model DoctorAssignmentHistory {
+  id             String       @id @default(uuid())
+  ipdAdmissionId String
+  previousDoctorId String?
+  assignedDoctorId String
+  effectiveFrom  DateTime     @default(now())
+  effectiveTo    DateTime?
+  changedBy      String
+  reason         String?      @db.Text
+
+  // Standard Metadata
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+  createdBy      String?      @db.Uuid
+  updatedBy      String?      @db.Uuid
+  isDeleted      Boolean      @default(false)
+  deletedAt      DateTime?
+  deletedBy      String?      @db.Uuid
+
+  // Relationships
+  ipdAdmission   IPDAdmission @relation(fields: [ipdAdmissionId], references: [id], onDelete: Cascade)
+  previousDoctor Doctor?      @relation("DocAssignPrev", fields: [previousDoctorId], references: [id], onDelete: Restrict)
+  assignedDoctor Doctor       @relation("DocAssignNew", fields: [assignedDoctorId], references: [id], onDelete: Restrict)
+  changedByEmployee Employee   @relation("DocAssignChangedBy", fields: [changedBy], references: [id], onDelete: Restrict)
+
+  @@map("doctor_assignment_history")
+}
+
+// ==========================================
+// 6. SURGICAL OT BOOKINGS
+// ==========================================
+
+model OperationTheater {
+  id                 String       @id @default(uuid())
+  otId               String       @unique @db.VarChar(30)
+  ipdAdmissionId     String?
+  opdConsultationId  String?
+  patientId          String
+  hospitalId         String
+  departmentId       String
+  operationType      OTType
+  operationName      String       @db.VarChar(150)
+  diagnosis          String       @db.Text
+  scheduledDate      DateTime
+  remarks            String?      @db.Text
+
+  // Timestamps
+  completedAt        DateTime?
+  completedBy        String?
+  cancelledAt        DateTime?
+  cancelledBy        String?
+  cancellationReason String?      @db.Text
+
+  // Standard Metadata
+  createdAt          DateTime     @default(now())
+  updatedAt          DateTime     @updatedAt
+  createdBy          String?      @db.Uuid
+  updatedBy          String?      @db.Uuid
+  isDeleted          Boolean      @default(false)
+  deletedAt          DateTime?
+  deletedBy          String?      @db.Uuid
+
+  // Relationships
+  hospital           Hospital     @relation(fields: [hospitalId], references: [id], onDelete: Restrict)
+  ipdAdmission       IPDAdmission? @relation(fields: [ipdAdmissionId], references: [id], onDelete: Cascade)
+  opdConsultation    OPDConsultation? @relation(fields: [opdConsultationId], references: [id], onDelete: SetNull)
+  patient            Patient      @relation(fields: [patientId], references: [id], onDelete: Restrict)
+  department         Department   @relation(fields: [departmentId], references: [id], onDelete: Restrict)
+  completer          Employee?    @relation("OTCompletedBy", fields: [completedBy], references: [id], onDelete: Restrict)
+  canceller          Employee?    @relation("OTCancelledBy", fields: [cancelledBy], references: [id], onDelete: Restrict)
+  primarySurgeon     Doctor       @relation("OTPrimarySurgeon", fields: [primarySurgeonId], references: [id], onDelete: Restrict)
+  assistantSurgeon   Doctor?      @relation("OTAssistantSurgeon", fields: [assistantSurgeonId], references: [id], onDelete: Restrict)
+  primarySurgeonId   String
+  assistantSurgeonId String?
+  procedureCatalogId String?
+  procedureCatalog   ChargeCatalog? @relation("OTProcedureCatalog", fields: [procedureCatalogId], references: [id], onDelete: SetNull)
+  revisions          OperationTheaterRevision[]
+
+  @@index([otId])
+  @@index([ipdAdmissionId])
+  @@index([opdConsultationId])
+  @@index([scheduledDate])
+  @@index([hospitalId])
+  @@map("operation_theaters")
+}
+
+model OperationTheaterRevision {
+  id                 String       @id @default(uuid())
+  operationTheaterId String
+  revisionNumber     Int
+  operationName      String       @db.VarChar(150)
+  diagnosis          String       @db.Text
+  primarySurgeonId   String
+  assistantSurgeonId String?
+  departmentId       String
+  remarks            String?      @db.Text
+  editedAt           DateTime     @default(now())
+  editedBy           String
+
+  // Relationships
+  operationTheater   OperationTheater @relation(fields: [operationTheaterId], references: [id], onDelete: Cascade)
+
+  @@index([operationTheaterId])
+  @@map("operation_theater_revisions")
+}
+
+// ==========================================
+// 7. DIAGNOSTICS & TEST PROCEDURES
+// ==========================================
+
+model LabTestCatalog {
+  id           String         @id @default(uuid())
+  code         String         @unique @db.VarChar(20)
+  name         String         @db.VarChar(150)
+  category     String         @db.VarChar(50)
+  standardRate Decimal        @db.Decimal(12, 2)
+
+  // Standard Metadata
+  createdAt    DateTime       @default(now())
+  updatedAt    DateTime       @updatedAt
+  createdBy    String?        @db.Uuid
+  updatedBy    String?        @db.Uuid
+  isDeleted    Boolean        @default(false)
+  deletedAt    DateTime?
+  deletedBy    String?        @db.Uuid
+
+  // Relationships
+  orders       LabTestOrder[]
+
+  @@map("lab_test_catalogs")
+}
+
+model LabTestOrder {
+  id                 String           @id @default(uuid())
+  patientId          String
+  testCatalogId      String
+  orderedByDoctorId  String
+  opdConsultationId  String?
+  ipdAdmissionId     String?
+  billableChargeId   String?
+  hospitalId         String
+  status             LaboratoryStatus @default(SCHEDULED)
+  sampleCollectedAt  DateTime?
+  sampleCollectedBy  String?          @db.Uuid
+  cancelledAt        DateTime?
+  cancelledBy        String?          @db.Uuid
+  cancellationReason String?          @db.Text
+  technicianId       String?          @db.Uuid
+  verifiedById       String?          @db.Uuid
+  remarks            String?          @db.Text
+  completedAt        DateTime?
+  completedBy        String?
+
+  // Standard Metadata
+  createdAt          DateTime         @default(now())
+  updatedAt          DateTime         @updatedAt
+  createdBy          String?          @db.Uuid
+  updatedBy          String?          @db.Uuid
+  isDeleted          Boolean          @default(false)
+  deletedAt          DateTime?
+  deletedBy          String?          @db.Uuid
+
+  // Relationships
+  hospital           Hospital         @relation(fields: [hospitalId], references: [id], onDelete: Restrict)
+  patient            Patient          @relation(fields: [patientId], references: [id], onDelete: Restrict)
+  testCatalog        LabTestCatalog   @relation(fields: [testCatalogId], references: [id], onDelete: Restrict)
+  orderedByDoctor    Doctor           @relation(fields: [orderedByDoctorId], references: [id], onDelete: Restrict)
+  opdConsultation    OPDConsultation? @relation(fields: [opdConsultationId], references: [id], onDelete: SetNull)
+  ipdAdmission       IPDAdmission?    @relation(fields: [ipdAdmissionId], references: [id], onDelete: SetNull)
+  results            LabTestResult[]
+  revisions          LabResultRevision[]
+
+  @@index([patientId])
+  @@index([status])
+  @@index([hospitalId])
+  @@index([patientId, createdAt])
+  @@map("lab_test_orders")
+}
+
+model LabTestResult {
+  id             String           @id @default(uuid())
+  testOrderId    String
+  parameterName  String           @db.VarChar(100)
+  parameterValue String           @db.VarChar(100)
+  referenceRange String?          @db.VarChar(100)
+  unit           String?          @db.VarChar(20)
+  status         String           @default("DRAFT") @db.VarChar(30) // "DRAFT", "FINALIZED"
+
+  // Standard Metadata
+  createdAt      DateTime         @default(now())
+  updatedAt      DateTime         @updatedAt
+  createdBy      String?          @db.Uuid
+  updatedBy      String?          @db.Uuid
+  isDeleted      Boolean          @default(false)
+  deletedAt      DateTime?
+  deletedBy      String?          @db.Uuid
+
+  // Relationships
+  testOrder      LabTestOrder     @relation(fields: [testOrderId], references: [id], onDelete: Cascade)
+
+  @@unique([testOrderId, parameterName])
+  @@map("lab_test_results")
+}
+
+model RadiologyScanCatalog {
+  id           String               @id @default(uuid())
+  code         String               @unique @db.VarChar(20)
+  name         String               @db.VarChar(150)
+  category     String               @db.VarChar(50)
+  standardRate Decimal              @db.Decimal(12, 2)
+
+  // Standard Metadata
+  createdAt    DateTime             @default(now())
+  updatedAt    DateTime             @updatedAt
+  createdBy    String?              @db.Uuid
+  updatedBy    String?              @db.Uuid
+  isDeleted    Boolean              @default(false)
+  deletedAt    DateTime?
+  deletedBy    String?              @db.Uuid
+
+  // Relationships
+  orders       RadiologyScanOrder[]
+
+  @@map("radiology_scan_catalogs")
+}
+
+model RadiologyScanOrder {
+  id                String               @id @default(uuid())
+  patientId         String
+  scanCatalogId     String
+  orderedByDoctorId String
+  opdConsultationId String?
+  ipdAdmissionId    String?
+  billableChargeId  String?
+  status            RadiologyStatus      @default(SCHEDULED)
+  findings          String?              @db.Text
+  remarks           String?              @db.Text
+  technicianId      String?              @db.Uuid
+  verifiedById      String?              @db.Uuid
+  cancelledAt       DateTime?
+  cancelledBy       String?              @db.Uuid
+  cancellationReason String?             @db.Text
+  completedAt       DateTime?
+  completedBy       String?
+
+  // Standard Metadata
+  createdAt         DateTime             @default(now())
+  updatedAt         DateTime             @updatedAt
+  createdBy         String?              @db.Uuid
+  updatedBy         String?              @db.Uuid
+  isDeleted         Boolean              @default(false)
+  deletedAt         DateTime?
+  deletedBy         String?              @db.Uuid
+
+  // Relationships
+  patient           Patient              @relation(fields: [patientId], references: [id], onDelete: Restrict)
+  scanCatalog       RadiologyScanCatalog @relation(fields: [scanCatalogId], references: [id], onDelete: Restrict)
+  orderedByDoctor   Doctor               @relation(fields: [orderedByDoctorId], references: [id], onDelete: Restrict)
+  opdConsultation   OPDConsultation?     @relation(fields: [opdConsultationId], references: [id], onDelete: SetNull)
+  ipdAdmission      IPDAdmission?        @relation(fields: [ipdAdmissionId], references: [id], onDelete: SetNull)
+  revisions         RadiologyFindingsRevision[]
+
+  @@index([patientId])
+  @@index([status])
+  @@map("radiology_scan_orders")
+}
+
+// ==========================================
+// 8. BILLING & FINANCE ARCHITECTURE
+// ==========================================
+
+model ChargeCatalog {
+  id              String           @id @default(uuid())
+  code            String           @unique @db.VarChar(20)
+  name            String           @db.VarChar(150)
+  category        String           @db.VarChar(50)
+  rate            Decimal          @db.Decimal(12, 2)
+
+  // Standard Metadata
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+  createdBy       String?          @db.Uuid
+  updatedBy       String?          @db.Uuid
+  isDeleted       Boolean          @default(false)
+  deletedAt       DateTime?
+  deletedBy       String?          @db.Uuid
+
+  otType          OTType?
+
+  // Relationships
+  billableCharges BillableCharge[]
+  otOperations    OperationTheater[] @relation("OTProcedureCatalog")
+
+  @@map("charge_catalogs")
+}
+
+model BillableCharge {
+  id              String                 @id @default(uuid())
+  patientId       String
+  chargeCatalogId String
+  sourceModule    ChargeSourceModule
+  sourceEntityId  String                 @db.Uuid
+  quantity        Int                    @default(1)
+  rate            Decimal                @db.Decimal(12, 2)
+  totalAmount     Decimal                @db.Decimal(12, 2)
+  billingStatus   BillingStatus          @default(PENDING)
+  version         Int                    @default(1)
+
+  // Standard Metadata
+  createdAt       DateTime               @default(now())
+  updatedAt       DateTime               @updatedAt
+  createdBy       String?                @db.Uuid
+  updatedBy       String?                @db.Uuid
+  isDeleted       Boolean                @default(false)
+  deletedAt       DateTime?
+  deletedBy       String?                @db.Uuid
+
+  // Relationships
+  patient         Patient                @relation(fields: [patientId], references: [id], onDelete: Restrict)
+  chargeCatalog   ChargeCatalog          @relation(fields: [chargeCatalogId], references: [id], onDelete: Restrict)
+  invoices        InvoiceChargeMapping[]
+
+  @@index([patientId])
+  @@index([billingStatus])
+  @@index([sourceModule, sourceEntityId])
+  @@index([patientId, createdAt])
+  @@map("billable_charges")
+}
+
+model Invoice {
+  id                 String                 @id @default(uuid())
+  invoiceNumber      String                 @unique @db.VarChar(30)
+  patientId          String
+  hospitalId         String
+  totalAmount        Decimal                @db.Decimal(12, 2)
+  discountAmount     Decimal                @default(0.00) @db.Decimal(12, 2)
+  discountPercentage Decimal?               @db.Decimal(5, 2)
+  discountReason     String?                @db.Text
+  discountApprovedBy String?                @db.Uuid
+  payableAmount      Decimal                @db.Decimal(12, 2)
+  paidAmount         Decimal                @default(0.00) @db.Decimal(12, 2)
+  balanceAmount      Decimal                @db.Decimal(12, 2)
+  paymentStatus      InvoiceStatus          @default(PENDING)
+  version            Int                    @default(1)
+
+  // Lifecycle Cancellations
+  cancelledAt        DateTime?
+  cancelledBy        String?
+  cancellationReason String?                @db.Text
+
+  // Standard Metadata
+  createdAt          DateTime               @default(now())
+  updatedAt          DateTime               @updatedAt
+  createdBy          String?                @db.Uuid
+  updatedBy          String?                @db.Uuid
+  isDeleted          Boolean                @default(false)
+  deletedAt          DateTime?
+  deletedBy          String?                @db.Uuid
+
+  // Relationships
+  hospital           Hospital               @relation(fields: [hospitalId], references: [id], onDelete: Restrict)
+  patient            Patient                @relation(fields: [patientId], references: [id], onDelete: Restrict)
+  canceller          Employee?              @relation("InvoiceCancelledBy", fields: [cancelledBy], references: [id], onDelete: Restrict)
+  charges            InvoiceChargeMapping[]
+  payments           Payment[]
+  refunds            Refund[]
+  depositAllocations PatientDepositAllocation[]
+
+  @@index([invoiceNumber])
+  @@index([patientId])
+  @@index([paymentStatus])
+  @@index([hospitalId])
+  @@index([invoiceNumber, paymentStatus])
+  @@index([patientId, createdAt])
+  @@map("invoices")
+}
+
+model InvoiceChargeMapping {
+  id               String         @id @default(uuid())
+  invoiceId        String
+  billableChargeId String
+
+  // Standard Metadata
+  createdAt        DateTime       @default(now())
+  updatedAt        DateTime       @updatedAt
+  isDeleted        Boolean        @default(false)
+  deletedAt        DateTime?
+  deletedBy        String?        @db.Uuid
+
+  invoice          Invoice        @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+  billableCharge   BillableCharge @relation(fields: [billableChargeId], references: [id], onDelete: Cascade)
+
+  @@unique([invoiceId, billableChargeId])
+  @@map("invoice_charge_mappings")
+}
+
+model Payment {
+  id                   String    @id @default(uuid())
+  invoiceId            String
+  amountPaid           Decimal   @db.Decimal(12, 2)
+  paymentMode          PaymentMode
+  transactionReference String?   @db.VarChar(100)
+  transactionGroupId   String?   @db.VarChar(50)
+  receivedAt           DateTime  @default(now())
+  receivedBy           String
+  version              Int       @default(1)
+
+  // Standard Metadata
+  createdAt            DateTime  @default(now())
+  updatedAt            DateTime  @updatedAt
+  createdBy            String?   @db.Uuid
+  updatedBy            String?   @db.Uuid
+  isDeleted            Boolean   @default(false)
+  deletedAt            DateTime?
+  deletedBy            String?   @db.Uuid
+
+  // Relationships
+  invoice              Invoice   @relation(fields: [invoiceId], references: [id], onDelete: Restrict)
+  recipient            Employee  @relation("PaymentReceivedBy", fields: [receivedBy], references: [id], onDelete: Restrict)
+  refunds              Refund[]
+
+  @@index([invoiceId])
+  @@index([receivedAt])
+  @@index([createdAt])
+  @@map("payments")
+}
+
+model Refund {
+  id             String    @id @default(uuid())
+  invoiceId      String
+  paymentId      String?
+  amountRefunded Decimal   @db.Decimal(12, 2)
+  refundReason   String    @db.Text
+  refundedAt     DateTime  @default(now())
+  refundedBy     String
+
+  // Standard Metadata
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+  createdBy      String?   @db.Uuid
+  updatedBy      String?   @db.Uuid
+  isDeleted      Boolean   @default(false)
+  deletedAt      DateTime?
+  deletedBy      String?   @db.Uuid
+
+  // Relationships
+  invoice        Invoice   @relation(fields: [invoiceId], references: [id], onDelete: Restrict)
+  payment        Payment?  @relation(fields: [paymentId], references: [id], onDelete: SetNull)
+  manager        Employee  @relation("RefundProcessedBy", fields: [refundedBy], references: [id], onDelete: Restrict)
+
+  @@index([invoiceId])
+  @@index([refundedAt])
+  @@index([createdAt])
+  @@map("refunds")
+}
+
+// ==========================================
+// 9. VITAL REGISTRATIONS
+// ==========================================
+
+model BirthRegistration {
+  id                String       @id @default(uuid())
+  babyName          String?      @db.VarChar(150)
+  dob               DateTime
+  gender            Gender
+  weightKg          Decimal      @db.Decimal(5, 2)
+  motherPatientId   String
+  ipdAdmissionId     String
+  hospitalId         String
+  deliveryType      DeliveryType
+  attendingDoctorId String
+  certificateNumber String       @unique @db.VarChar(50)
+
+  // Standard Metadata
+  createdAt         DateTime     @default(now())
+  updatedAt         DateTime     @updatedAt
+  createdBy         String?      @db.Uuid
+  updatedBy         String?      @db.Uuid
+  isDeleted         Boolean      @default(false)
+  deletedAt         DateTime?
+  deletedBy         String?      @db.Uuid
+
+  // Relationships
+  hospital          Hospital     @relation(fields: [hospitalId], references: [id], onDelete: Restrict)
+  mother            Patient      @relation("MotherPatient", fields: [motherPatientId], references: [id], onDelete: Restrict)
+  ipdAdmission      IPDAdmission @relation(fields: [ipdAdmissionId], references: [id], onDelete: Cascade)
+  attendingDoctor   Doctor       @relation(fields: [attendingDoctorId], references: [id], onDelete: Restrict)
+
+  @@index([ipdAdmissionId])
+  @@index([certificateNumber])
+  @@index([hospitalId])
+  @@map("birth_registrations")
+}
+
+model DeathRegistration {
+  id                String            @id @default(uuid())
+  patientId         String?
+  ipdAdmissionId    String?
+  hospitalId         String
+  deceasedName      String            @db.VarChar(150)
+  deceasedAge       Int
+  deceasedGender    Gender
+  dateOfDeath       DateTime
+  causeOfDeath      String            @db.Text
+  locationType      DeathLocationType
+  attendingDoctorId String?
+  informantDetails  String?           @db.Text
+  certificateNumber String            @unique @db.VarChar(50)
+
+  // Standard Metadata
+  createdAt         DateTime          @default(now())
+  updatedAt         DateTime          @updatedAt
+  createdBy         String?           @db.Uuid
+  updatedBy         String?           @db.Uuid
+  isDeleted         Boolean           @default(false)
+  deletedAt         DateTime?
+  deletedBy         String?           @db.Uuid
+
+  // Relationships
+  hospital          Hospital          @relation(fields: [hospitalId], references: [id], onDelete: Restrict)
+  patient           Patient?          @relation(fields: [patientId], references: [id], onDelete: SetNull)
+  ipdAdmission      IPDAdmission?     @relation(fields: [ipdAdmissionId], references: [id], onDelete: Cascade)
+  attendingDoctor   Doctor?           @relation(fields: [attendingDoctorId], references: [id], onDelete: Restrict)
+
+  @@index([patientId])
+  @@index([ipdAdmissionId])
+  @@index([certificateNumber])
+  @@index([hospitalId])
+  @@map("death_registrations")
+}
+
+model DischargeSummaryRevision {
+  id                 String       @id @default(uuid())
+  ipdAdmissionId     String
+  revisionNumber     Int
+  summary            String       @db.Text
+  editedAt           DateTime     @default(now())
+  editedBy           String
+
+  // Relationships
+  ipdAdmission       IPDAdmission @relation(fields: [ipdAdmissionId], references: [id], onDelete: Cascade)
+
+  @@index([ipdAdmissionId])
+  @@map("discharge_summary_revisions")
+}
+
+// ==========================================
+// 10. PHARMACY INVENTORY & SALES
+// ==========================================
+
+model Medicine {
+  id                  String                 @id @default(uuid())
+  code                String                 @unique @db.VarChar(30)
+  name                String                 @db.VarChar(150)
+  genericName         String                 @db.VarChar(150)
+  category            String                 @db.VarChar(50)
+  form                String                 @db.VarChar(50)
+  standardSellingPrice Decimal                @db.Decimal(12, 2)
+  brand               String                 @db.VarChar(100) @default("Generic")
+  unit                String                 @db.VarChar(30) @default("Tablets")
+  hsnCode             String?                @db.VarChar(30)
+  gstPercentage       Decimal                @db.Decimal(5, 2) @default(0.00)
+  purchasePrice       Decimal                @db.Decimal(12, 2) @default(0.00)
+  sellingPrice        Decimal                @db.Decimal(12, 2) @default(0.00)
+  minimumStock        Int                    @default(0)
+  isActive            Boolean                @default(true)
+  isExpirable         Boolean                @default(true)
+
+  // Standard Metadata
+  createdAt           DateTime               @default(now())
+  updatedAt           DateTime               @updatedAt
+  createdBy           String?                @db.Uuid
+  updatedBy           String?                @db.Uuid
+  isDeleted           Boolean                @default(false)
+  deletedAt           DateTime?
+  deletedBy           String?                @db.Uuid
+
+  // Relationships
+  stock               MedicineStock[]
+  purchaseItems       PharmacyPurchaseItem[]
+  invoiceItems        PharmacyInvoiceItem[]
+  adjustments         PharmacyStockAdjustment[]
+  returnItems         PharmacyReturnItem[]
+
+  @@index([name])
+  @@index([genericName])
+  @@index([code])
+  @@map("medicines")
+}
+
+model MedicineStock {
+  id              String    @id @default(uuid())
+  medicineId      String
+  batchNumber     String    @db.VarChar(50)
+  expiryDate      DateTime? @db.Date
+  currentQuantity Int
+  purchaseRate    Decimal   @db.Decimal(12, 2)
+  sellingRate     Decimal   @db.Decimal(12, 2)
+  gstPercentage   Decimal   @db.Decimal(5, 2) @default(0.00)
+  version         Int       @default(1)
+
+  // Standard Metadata
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  createdBy       String?   @db.Uuid
+  updatedBy       String?   @db.Uuid
+  isDeleted       Boolean   @default(false)
+  deletedAt       DateTime?
+  deletedBy       String?   @db.Uuid
+
+  // Relationships
+  medicine        Medicine  @relation(fields: [medicineId], references: [id], onDelete: Cascade)
+
+  @@unique([medicineId, batchNumber])
+  @@index([medicineId])
+  @@index([expiryDate])
+  @@map("medicine_stocks")
+}
+
+model PharmacyPurchaseOrder {
+  id            String                 @id @default(uuid())
+  invoiceNumber String                 @db.VarChar(50)
+  supplierName  String                 @db.VarChar(150)
+  orderDate     DateTime               @db.Date
+  totalCost     Decimal                @db.Decimal(12, 2)
+  receivedBy    String
+  remarks       String?                @db.Text
+
+  // Standard Metadata
+  createdAt     DateTime               @default(now())
+  updatedAt     DateTime               @updatedAt
+  createdBy     String?                @db.Uuid
+  updatedBy     String?                @db.Uuid
+  isDeleted     Boolean                @default(false)
+  deletedAt     DateTime?
+  deletedBy     String?                @db.Uuid
+
+  // Relationships
+  recipient     Employee               @relation("PharmacyPurchaseReceivedBy", fields: [receivedBy], references: [id], onDelete: Restrict)
+  items         PharmacyPurchaseItem[]
+
+  @@map("pharmacy_purchase_orders")
+}
+
+model PharmacyPurchaseItem {
+  id              String                @id @default(uuid())
+  purchaseOrderId String
+  medicineId      String
+  batchNumber     String                @db.VarChar(50)
+  expiryDate      DateTime?             @db.Date
+  quantityReceived Int
+  unitCost        Decimal               @db.Decimal(12, 2)
+  purchaseRate    Decimal               @db.Decimal(12, 2) @default(0.00)
+  sellingRate     Decimal               @db.Decimal(12, 2) @default(0.00)
+  gstPercentage   Decimal               @db.Decimal(5, 2) @default(0.00)
+
+  // Standard Metadata
+  createdAt       DateTime              @default(now())
+  updatedAt       DateTime              @updatedAt
+  createdBy       String?               @db.Uuid
+  updatedBy       String?               @db.Uuid
+  isDeleted       Boolean               @default(false)
+  deletedAt       DateTime?
+  deletedBy       String?               @db.Uuid
+
+  // Relationships
+  purchaseOrder   PharmacyPurchaseOrder @relation(fields: [purchaseOrderId], references: [id], onDelete: Cascade)
+  medicine        Medicine              @relation(fields: [medicineId], references: [id], onDelete: Restrict)
+
+  @@map("pharmacy_purchase_items")
+}
+
+model PharmacyInvoice {
+  id                    String                @id @default(uuid())
+  pharmacyInvoiceNumber String                @unique @db.VarChar(30)
+  customerType          PharmacyCustomerType
+  patientId             String?
+  hospitalId            String
+  customerName          String                @db.VarChar(150)
+  customerPhone         String?               @db.VarChar(20)
+  totalAmount           Decimal               @db.Decimal(12, 2)
+  discountAmount        Decimal               @default(0.00) @db.Decimal(12, 2)
+  payableAmount         Decimal               @db.Decimal(12, 2)
+  paymentMode           PaymentMode           @default(CASH)
+  receivedBy            String
+  status                InvoiceStatus         @default(PAID)
+
+  // Lifecycle Cancellations
+  cancelledAt           DateTime?
+  cancelledBy           String?
+  cancellationReason    String?               @db.Text
+
+  // Standard Metadata
+  createdAt             DateTime              @default(now())
+  updatedAt             DateTime              @updatedAt
+  createdBy             String?               @db.Uuid
+  updatedBy             String?               @db.Uuid
+  isDeleted             Boolean               @default(false)
+  deletedAt             DateTime?
+  deletedBy             String?               @db.Uuid
+
+  // Relationships
+  hospital              Hospital              @relation(fields: [hospitalId], references: [id], onDelete: Restrict)
+  patient               Patient?              @relation(fields: [patientId], references: [id], onDelete: SetNull)
+  recipient             Employee              @relation("PharmacyInvoiceReceivedBy", fields: [receivedBy], references: [id], onDelete: Restrict)
+  canceller             Employee?             @relation("PharmacyInvoiceCancelledBy", fields: [cancelledBy], references: [id], onDelete: Restrict)
+  items                 PharmacyInvoiceItem[]
+  returns               PharmacyReturn[]      @relation("InvoiceReturns")
+  payments              PharmacyInvoicePayment[]
+
+  @@index([pharmacyInvoiceNumber])
+  @@index([patientId])
+  @@index([hospitalId])
+  @@map("pharmacy_invoices")
+}
+
+model PharmacyInvoiceItem {
+  id                String          @id @default(uuid())
+  pharmacyInvoiceId String
+  medicineId        String
+  batchNumber       String          @db.VarChar(50)
+  quantitySold      Int
+  unitPrice         Decimal         @db.Decimal(12, 2)
+  totalPrice        Decimal         @db.Decimal(12, 2)
+  gstPercentage     Decimal         @db.Decimal(5, 2) @default(0.00)
+  discountAmount    Decimal         @db.Decimal(12, 2) @default(0.00)
+
+  // Standard Metadata
+  createdAt         DateTime        @default(now())
+  updatedAt         DateTime        @updatedAt
+  isDeleted         Boolean         @default(false)
+  deletedAt         DateTime?
+  deletedBy         String?         @db.Uuid
+
+  // Relationships
+  pharmacyInvoice   PharmacyInvoice @relation(fields: [pharmacyInvoiceId], references: [id], onDelete: Cascade)
+  medicine          Medicine        @relation(fields: [medicineId], references: [id], onDelete: Restrict)
+
+  @@map("pharmacy_invoice_items")
+}
+
+model PharmacyReturn {
+  id                String          @id @default(uuid())
+  pharmacyInvoiceId String
+  returnNumber      String          @unique @db.VarChar(30)
+  refundAmount      Decimal         @db.Decimal(12, 2)
+  reason            String          @db.Text
+
+  // Standard Metadata
+  createdAt         DateTime        @default(now())
+  updatedAt         DateTime        @updatedAt
+  createdBy         String?         @db.Uuid
+  updatedBy         String?         @db.Uuid
+  isDeleted         Boolean         @default(false)
+  deletedAt         DateTime?
+  deletedBy         String?         @db.Uuid
+
+  // Relationships
+  pharmacyInvoice   PharmacyInvoice @relation("InvoiceReturns", fields: [pharmacyInvoiceId], references: [id], onDelete: Restrict)
+  items             PharmacyReturnItem[]
+
+  @@index([returnNumber])
+  @@map("pharmacy_returns")
+}
+
+model PharmacyInvoicePayment {
+  id                String          @id @default(uuid())
+  pharmacyInvoiceId String
+  paymentMode       PaymentMode
+  amount            Decimal         @db.Decimal(12, 2)
+
+  // Relationships
+  pharmacyInvoice   PharmacyInvoice @relation(fields: [pharmacyInvoiceId], references: [id], onDelete: Cascade)
+
+  @@map("pharmacy_invoice_payments")
+}
+
+model PharmacyReturnItem {
+  id                String          @id @default(uuid())
+  pharmacyReturnId  String
+  medicineId        String
+  batchNumber       String          @db.VarChar(50)
+  quantityReturned  Int
+  refundRate        Decimal         @db.Decimal(12, 2)
+  totalAmount       Decimal         @db.Decimal(12, 2)
+
+  // Relationships
+  pharmacyReturn    PharmacyReturn  @relation(fields: [pharmacyReturnId], references: [id], onDelete: Cascade)
+  medicine          Medicine        @relation(fields: [medicineId], references: [id], onDelete: Restrict)
+
+  @@map("pharmacy_return_items")
+}
+
+enum PharmacyAdjustmentType {
+  DAMAGED
+  EXPIRED
+  LOST
+  MANUAL_CORRECTION
+}
+
+model PharmacyStockAdjustment {
+  id                String                 @id @default(uuid())
+  medicineId        String
+  batchNumber       String                 @db.VarChar(50)
+  adjustmentType    PharmacyAdjustmentType
+  stockBefore       Int
+  quantity          Int
+  stockAfter        Int
+  reason            String                 @db.Text
+  employeeId        String
+  date              DateTime               @default(now())
+
+  // Standard Metadata
+  createdAt         DateTime               @default(now())
+  createdBy         String?                @db.Uuid
+
+  // Relationships
+  medicine          Medicine               @relation(fields: [medicineId], references: [id], onDelete: Restrict)
+  employee          Employee               @relation(fields: [employeeId], references: [id], onDelete: Restrict)
+
+  @@map("pharmacy_stock_adjustments")
+}
+
+// ==========================================
+// 11. PRINT ENGINE LAYOUT DESIGNS
+// ==========================================
+
+enum PrintTemplateStatus {
+  DRAFT
+  PUBLISHED
+  ARCHIVED
+}
+
+model PrintTemplate {
+  id           String              @id @default(uuid())
+  templateKey  String              @db.VarChar(50)
+  name         String              @db.VarChar(100)
+  layoutJson   Json                @db.JsonB
+  pageFormat   String              @db.VarChar(30)
+  hospitalId   String
+  documentType String              @db.VarChar(50)
+  status       PrintTemplateStatus @default(DRAFT)
+  version      Int                 @default(1)
+  isPublished  Boolean             @default(false)
+  category     String              @db.VarChar(50) @default("General")
+  orientation  String              @db.VarChar(20) @default("PORTRAIT")
+  margins      String              @db.VarChar(30) @default("15mm")
+  copies       Int                 @default(1)
+  language     String              @db.VarChar(20) @default("en")
+  isSystemDefault Boolean          @default(false)
+  thumbnailUrl String?             @db.Text
+
+  // Standard Metadata
+  createdAt    DateTime            @default(now())
+  updatedAt    DateTime            @updatedAt
+  createdBy    String?             @db.Uuid
+  updatedBy    String?             @db.Uuid
+  isDeleted    Boolean             @default(false)
+  deletedAt    DateTime?
+  deletedBy    String?             @db.Uuid
+
+  // Relationships
+  hospital     Hospital            @relation(fields: [hospitalId], references: [id], onDelete: Restrict)
+  histories    PrintHistory[]
+
+  @@index([hospitalId])
+  @@index([templateKey])
+  @@map("print_templates")
+}
+
+model PrintHistory {
+  id                String         @id @default(uuid())
+  documentType      String         @db.VarChar(50)
+  documentId        String         @db.VarChar(50)
+  printedById       String
+  printedAt         DateTime       @default(now())
+  templateId        String?
+  templateVersion   Int            @default(1)
+  requestId         String?        @db.VarChar(50)
+  printedFromModule String         @db.VarChar(50)
+  brandingSnapshot  Json           @db.JsonB
+
+  // Relationships
+  printedBy         Employee       @relation("PrintedByEmployee", fields: [printedById], references: [id], onDelete: Cascade)
+  template          PrintTemplate? @relation(fields: [templateId], references: [id], onDelete: SetNull)
+
+  @@map("print_histories")
+}
+
+// ==========================================
+// 12. AUDITING SYSTEM LOGS
+// ==========================================
+
+model Audit {
+  id            String    @id @default(uuid())
+  timestamp     DateTime  @default(now())
+  userId        String?
+  clientIp      String?   @db.VarChar(45)
+  action        String    @db.VarChar(50)
+  resource      String?   @db.VarChar(100)
+  entityId      String?   @db.Uuid
+  requestId     String?   @db.VarChar(50)
+  previousState Json?
+  newState      Json?
+  reason        String?   @db.Text
+  description   String    @db.Text
+
+  // Relationships
+  user          Employee? @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([timestamp])
+  @@index([userId])
+  @@index([action])
+  @@index([resource, entityId])
+  @@map("audits")
+}
+
+model PatientDeposit {
+  id                 String           @id @default(uuid())
+  patientId          String
+  hospitalId         String
+  opdConsultationId  String?
+  amount             Decimal          @db.Decimal(12, 2)
+  collectedBy        String           @db.Uuid
+  transactionDate    DateTime         @default(now())
+  isRefunded         Boolean          @default(false)
+  
+  // Standard Metadata
+  createdAt          DateTime         @default(now())
+  updatedAt          DateTime         @updatedAt
+  createdBy          String?          @db.Uuid
+  updatedBy          String?          @db.Uuid
+  isDeleted          Boolean          @default(false)
+  deletedAt          DateTime?
+  deletedBy          String?          @db.Uuid
+
+  // Relationships
+  patient            Patient          @relation(fields: [patientId], references: [id], onDelete: Restrict)
+  hospital           Hospital         @relation(fields: [hospitalId], references: [id], onDelete: Restrict)
+  opdConsultation    OPDConsultation? @relation(fields: [opdConsultationId], references: [id], onDelete: SetNull)
+  allocations        PatientDepositAllocation[]
+
+  @@map("patient_deposits")
+}
+
+model PatientDepositAllocation {
+  id               String         @id @default(uuid())
+  depositId        String
+  invoiceId        String
+  amountAllocated  Decimal        @db.Decimal(12, 2)
+  transactionDate  DateTime       @default(now())
+  
+  // Standard Metadata
+  createdAt        DateTime       @default(now())
+  updatedAt        DateTime       @updatedAt
+  createdBy        String?        @db.Uuid
+  updatedBy        String?        @db.Uuid
+  isDeleted        Boolean        @default(false)
+  deletedAt        DateTime?
+  deletedBy        String?        @db.Uuid
+
+  // Relationships
+  deposit          PatientDeposit @relation(fields: [depositId], references: [id], onDelete: Restrict)
+  invoice          Invoice        @relation(fields: [invoiceId], references: [id], onDelete: Restrict)
+
+  @@index([depositId])
+  @@index([invoiceId])
+  @@map("patient_deposit_allocations")
+}
+
+model LabResultRevision {
+  id                 String          @id @default(uuid())
+  testOrderId        String
+  revisionNumber     Int
+  results            Json            // Snap array: [{ parameterName, parameterValue, referenceRange, unit }]
+  remarks            String?         @db.Text
+  technicianId       String?         @db.Uuid
+  verifiedById       String?         @db.Uuid
+  completedAt        DateTime
+  completedBy        String
+  editedAt           DateTime        @default(now())
+  editedBy           String          @db.Uuid
+
+  // Relationships
+  testOrder          LabTestOrder    @relation(fields: [testOrderId], references: [id], onDelete: Cascade)
+
+  @@index([testOrderId])
+  @@map("lab_result_revisions")
+}
+
+model RadiologyFindingsRevision {
+  id                 String              @id @default(uuid())
+  scanOrderId        String
+  revisionNumber     Int
+  findings           String              @db.Text
+  remarks            String?             @db.Text
+  technicianId       String?             @db.Uuid
+  verifiedById       String?             @db.Uuid
+  completedAt        DateTime
+  completedBy        String
+  editedAt           DateTime            @default(now())
+  editedBy           String              @db.Uuid
+
+  // Relationships
+  scanOrder          RadiologyScanOrder  @relation(fields: [scanOrderId], references: [id], onDelete: Cascade)
+
+  @@index([scanOrderId])
+  @@map("radiology_findings_revisions")
+}

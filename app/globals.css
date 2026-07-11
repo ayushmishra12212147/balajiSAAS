@@ -1,0 +1,102 @@
+@import "tailwindcss";
+
+:root {
+  --background: #f8fafc;
+  --foreground: #0f172a;
+  
+  /* Slate variables for light mode */
+  --slate-950: #f8fafc;
+  --slate-900: #ffffff;
+  --slate-800: #e2e8f0;
+  --slate-700: #cbd5e1;
+  --slate-600: #94a3b8;
+  --slate-500: #64748b;
+  --slate-400: #475569;
+  --slate-350: #334155;
+  --slate-300: #334155;
+  --slate-200: #1e293b;
+  --slate-100: #0f172a;
+  --slate-50: #020617;
+  
+  /* Zinc variables for light mode */
+  --zinc-950: #f4f4f5;
+  --zinc-900: #ffffff;
+  --zinc-800: #e4e4e7;
+  --zinc-700: #d4d4d8;
+  --zinc-600: #a1a1aa;
+  --zinc-500: #71717a;
+  --zinc-400: #52525b;
+  --zinc-300: #3f3f46;
+  --zinc-200: #27272a;
+  --zinc-100: #18181b;
+  --zinc-50: #09090b;
+}
+
+/* Dark mode overrides */
+.dark, :root[class~="dark"] {
+  --background: #090d16;
+  --foreground: #f8fafc;
+  
+  --slate-950: #090d16;
+  --slate-900: #0f172a;
+  --slate-800: #1e293b;
+  --slate-700: #334155;
+  --slate-600: #475569;
+  --slate-500: #64748b;
+  --slate-400: #94a3b8;
+  --slate-350: #cbd5e1;
+  --slate-300: #cbd5e1;
+  --slate-200: #e2e8f0;
+  --slate-100: #f8fafc;
+  --slate-5: #ffffff;
+  
+  --zinc-950: #09090b;
+  --zinc-900: #18181b;
+  --zinc-800: #27272a;
+  --zinc-700: #3f3f46;
+  --zinc-600: #52525b;
+  --zinc-500: #71717a;
+  --zinc-400: #a1a1aa;
+  --zinc-300: #d4d4d8;
+  --zinc-200: #e4e4e7;
+  --zinc-100: #f4f4f5;
+  --zinc-50: #ffffff;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+  
+  --color-slate-950: var(--slate-950);
+  --color-slate-900: var(--slate-900);
+  --color-slate-800: var(--slate-800);
+  --color-slate-700: var(--slate-700);
+  --color-slate-600: var(--slate-600);
+  --color-slate-500: var(--slate-500);
+  --color-slate-400: var(--slate-400);
+  --color-slate-350: var(--slate-350);
+  --color-slate-300: var(--slate-300);
+  --color-slate-200: var(--slate-200);
+  --color-slate-100: var(--slate-100);
+  --color-slate-50: var(--slate-50);
+  
+  --color-zinc-950: var(--zinc-950);
+  --color-zinc-900: var(--zinc-900);
+  --color-zinc-800: var(--zinc-800);
+  --color-zinc-700: var(--zinc-700);
+  --color-zinc-600: var(--zinc-600);
+  --color-zinc-500: var(--zinc-500);
+  --color-zinc-400: var(--zinc-400);
+  --color-zinc-300: var(--zinc-300);
+  --color-zinc-200: var(--zinc-200);
+  --color-zinc-100: var(--zinc-100);
+  --color-zinc-50: var(--zinc-50);
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: Arial, Helvetica, sans-serif;
+}
