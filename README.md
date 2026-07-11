@@ -109,21 +109,9 @@ npm install
 
 ### 3. Configure Environment
 
-Create a `.env` file in the root directory:
+Create a `.env` file in the root directory with your database URL, session secrets, and app configuration.
 
-```env
-# Database
-DATABASE_URL="postgresql://USER:PASSWORD@HOST:PORT/DATABASE"
-
-# App
-NEXTAUTH_SECRET="your-super-secret-key-here"
-NEXTAUTH_URL="http://localhost:3000"
-
-# Session
-SESSION_SECRET="another-secret-key"
-```
-
-> ⚠️ **Never commit your `.env` file.** It is already in `.gitignore`.
+> ⚠️ **Never commit your `.env` file.** It is already in `.gitignore`. Contact the developer for the required environment variables.
 
 ### 4. Run Database Migrations
 
