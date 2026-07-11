@@ -12,8 +12,8 @@
     "lint": "eslint",
     "electron:compile": "tsc -p electron/tsconfig.electron.json",
     "electron:dev": "concurrently --kill-others \"npm run dev\" \"npm run electron:compile && wait-on http://localhost:3000 && electron .\"",
-    "electron:build": "npm run build && npm run electron:compile && electron-builder --win",
-    "electron:pack": "npm run build && npm run electron:compile && electron-builder --win --dir"
+    "electron:build": "npm run electron:compile && electron-builder --win",
+    "electron:pack": "npm run electron:compile && electron-builder --win --dir"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.4.0",
@@ -67,44 +67,7 @@
       "dist-electron/**/*",
       "!node_modules"
     ],
-    "extraResources": [
-      {
-        "from": ".next/standalone",
-        "to": "app",
-        "filter": [
-          "**/*",
-          "node_modules/**/*"
-        ]
-      },
-      {
-        "from": ".next/static",
-        "to": "app/.next/static",
-        "filter": [
-          "**/*"
-        ]
-      },
-      {
-        "from": "public",
-        "to": "app/public",
-        "filter": [
-          "**/*"
-        ]
-      },
-      {
-        "from": "prisma",
-        "to": "prisma",
-        "filter": [
-          "**/*"
-        ]
-      },
-      {
-        "from": "node_modules/.prisma",
-        "to": "prisma-engine",
-        "filter": [
-          "**/*"
-        ]
-      }
-    ],
+    "extraResources": [],
     "win": {
       "target": [
         {

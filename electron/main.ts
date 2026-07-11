@@ -90,41 +90,18 @@ function getIconPath(): string | undefined {
 // ── Startup Sequence ────────────────────────────────────────────────────
 
 async function startApplication(): Promise<void> {
-  // Step 0: Initialize crash handlers and log rotation
+  // Initialize crash handlers
   crashHandler.initialize();
-  crashHandler.logEvent("startup", "Beginning HMS startup sequence...");
+  crashHandler.logEvent("startup", "Launching Balaji HMS Online...");
 
-  // Register IPC handlers (available even before server starts — needed for setup wizard)
+  // Register IPC handlers (keeps preload hooks happy)
   registerIpcHandlers(configManager, serverManager, crashHandler, toolkit);
 
-  // Step 1: Load Config
-  crashHandler.logEvent("startup", "Step 1: Loading configuration...");
-  const isFirstRun = !configManager.isSetupComplete();
+  // Directly load the online hosted application URL
+  const onlineUrl = "https://balaji.medserve.me/login";
+  mainWindow = createWindow(onlineUrl);
 
-  if (isFirstRun) {
-    // First run — start server with defaults for setup wizard
-    crashHandler.logEvent("startup", "First run detected. Launching setup wizard...");
-    await startServerAndOpenWindow("/setup");
-    return;
-  }
-
-  // Step 2: Validate Config
-  crashHandler.logEvent("startup", "Step 2: Validating configuration...");
-  const config = configManager.loadConfig();
-
-  if (!config.database.host || !config.database.database) {
-    crashHandler.logEvent("startup", "Invalid config. Launching setup wizard...");
-    await startServerAndOpenWindow("/setup");
-    return;
-  }
-
-  // Update last startup timestamp
-  configManager.updateConfig({
-    app: { ...config.app, lastStartup: new Date().toISOString() },
-  });
-
-  // Step 3-4-5: Start server, health check, open window
-  await startServerAndOpenWindow("/");
+  crashHandler.logEvent("startup", "Balaji HMS Online loaded.");
 }
 
 /**
@@ -255,9 +232,8 @@ if (!gotLock) {
   });
 
   app.on("activate", () => {
-    if (BrowserWindow.getAllWindows().length === 0 && serverManager.getIsRunning()) {
-      const port = serverManager.getPort();
-      mainWindow = createWindow(`http://127.0.0.1:${port}/`);
+    if (BrowserWindow.getAllWindows().length === 0) {
+      mainWindow = createWindow("https://balaji.medserve.me/login");
     }
   });
 
