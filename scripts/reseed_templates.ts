@@ -87,46 +87,44 @@ async function main() {
   for (const hospital of hospitals) {
     console.log(`Reseeding system default templates for Hospital: ${hospital.name} (${hospital.id})...`);
 
-    await prisma.$transaction(async (tx) => {
-      // 1. Delete existing system default templates for this hospital
-      const deleted = await tx.printTemplate.deleteMany({
-        where: {
-          isSystemDefault: true,
+    // 1. Delete existing system default templates for this hospital
+    const deleted = await prisma.printTemplate.deleteMany({
+      where: {
+        isSystemDefault: true,
+        hospitalId: hospital.id,
+      },
+    });
+    console.log(`Deleted ${deleted.count} old system default templates for hospital ${hospital.name}.`);
+
+    // 2. Create updated system default templates
+    let createdCount = 0;
+    for (const key of TEMPLATE_KEYS) {
+      const layout = getDefaultLayoutFor(key);
+      const title = getDocumentTitle(key);
+      const category = TEMPLATE_CATEGORIES[key] || "General";
+
+      await prisma.printTemplate.create({
+        data: {
+          templateKey: key,
+          name: `${title} (Default)`,
+          category,
+          layoutJson: layout as unknown as Prisma.InputJsonValue,
+          pageFormat: "A4",
+          orientation: "PORTRAIT",
+          margins: "15mm",
+          copies: 1,
+          language: "en",
           hospitalId: hospital.id,
+          documentType: key,
+          status: "PUBLISHED",
+          version: 1,
+          isPublished: true,
+          isSystemDefault: true,
         },
       });
-      console.log(`Deleted ${deleted.count} old system default templates for hospital ${hospital.name}.`);
-
-      // 2. Create updated system default templates
-      let createdCount = 0;
-      for (const key of TEMPLATE_KEYS) {
-        const layout = getDefaultLayoutFor(key);
-        const title = getDocumentTitle(key);
-        const category = TEMPLATE_CATEGORIES[key] || "General";
-
-        await tx.printTemplate.create({
-          data: {
-            templateKey: key,
-            name: `${title} (Default)`,
-            category,
-            layoutJson: layout as unknown as Prisma.InputJsonValue,
-            pageFormat: "A4",
-            orientation: "PORTRAIT",
-            margins: "15mm",
-            copies: 1,
-            language: "en",
-            hospitalId: hospital.id,
-            documentType: key,
-            status: "PUBLISHED",
-            version: 1,
-            isPublished: true,
-            isSystemDefault: true,
-          },
-        });
-        createdCount++;
-      }
-      console.log(`Successfully created ${createdCount} system default templates for hospital ${hospital.name}.`);
-    });
+      createdCount++;
+    }
+    console.log(`Successfully created ${createdCount} system default templates for hospital ${hospital.name}.`);
   }
 }
 

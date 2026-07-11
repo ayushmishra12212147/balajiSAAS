@@ -1,7 +1,7 @@
 import bcrypt from "bcryptjs";
 
 // Lazy-load argon2 to prevent startup failure in environments lacking binary compiler tools
-let argon2Module: typeof import("argon2") | null = null;
+let argon2Module: any = null;
 try {
   // eslint-disable-next-line @typescript-eslint/no-require-imports
   argon2Module = require("argon2");

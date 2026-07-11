@@ -1,7 +1,5 @@
 import { PrismaClient } from "@prisma/client";
-
-// Use argon2 since it's available and is the active PasswordService provider
-import argon2 from "argon2";
+import bcrypt from "bcryptjs";
 
 const prisma = new PrismaClient();
 
@@ -9,13 +7,8 @@ async function fixAdminPassword() {
   const email = "ayushmishraofficial142@gmail.com";
   const password = "Ayush@123#";
 
-  // Hash with argon2id (matching PasswordService's active provider)
-  const passwordHash = await argon2.hash(password, {
-    type: argon2.argon2id,
-    memoryCost: 65536,
-    timeCost: 3,
-    parallelism: 4,
-  });
+  // Hash with bcryptjs
+  const passwordHash = await bcrypt.hash(password, 12);
 
   const result = await prisma.employee.update({
     where: { email },

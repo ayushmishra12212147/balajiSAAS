@@ -19,7 +19,6 @@
     "@hookform/resolvers": "^5.4.0",
     "@prisma/client": "^6.19.3",
     "@tanstack/react-table": "^8.21.3",
-    "argon2": "^0.44.0",
     "bcryptjs": "^3.0.3",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
@@ -113,8 +112,7 @@
             "x64"
           ]
         }
-      ],
-      "icon": "public/favicon.ico"
+      ]
     },
     "nsis": {
       "oneClick": false,
@@ -124,8 +122,6 @@
       "createDesktopShortcut": true,
       "createStartMenuShortcut": true,
       "shortcutName": "Balaji HMS",
-      "installerIcon": "public/favicon.ico",
-      "uninstallerIcon": "public/favicon.ico",
       "installerSidebar": null,
       "uninstallDisplayName": "Balaji HMS"
     }
