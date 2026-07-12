@@ -5,12 +5,14 @@ const prisma = new PrismaClient();
 
 const MODULES_AND_ACTIONS = [
   { module: "Patient", actions: ["View", "Create", "Edit", "Delete", "Print"] },
-  { module: "Billing", actions: ["View", "ReceivePayment", "Refund", "Cancel"] },
-  { module: "Laboratory", actions: ["View", "Create", "Complete", "Print"] },
-  { module: "OT", actions: ["View", "Create", "Edit", "Complete"] },
-  { module: "Pharmacy", actions: ["View", "Create", "Edit", "Dispense"] },
-  { module: "Admin", actions: ["View", "ManageUsers", "ManagePermissions", "ManageSettings", "ManageTemplates", "PublishTemplate", "ManageNumbering", "Backup", "Restore", "ViewAudit", "Maintenance", "License", "Sessions"] },
+  { module: "OPD", actions: ["View", "Register", "Edit", "Cancel", "Print"] },
+  { module: "IPD", actions: ["View", "Admit", "Discharge", "Transfer Bed", "Assign Charges", "Reassign Doctor", "Register Birth", "Register Death", "Print"] },
+  { module: "Billing", actions: ["View", "Receive Payment", "Refund", "Cancel Invoice", "Apply Discount", "Generate Invoice", "Print"] },
+  { module: "Laboratory", actions: ["View", "Schedule", "Complete", "Print"] },
+  { module: "OT", actions: ["View", "Schedule", "Complete", "Print", "Assign Charges", "Register", "Close Operation"] },
+  { module: "Pharmacy", actions: ["View", "Purchase", "Sell", "Stock Adjustment", "Return", "Print"] },
   { module: "Reports", actions: ["View", "Export", "Print"] },
+  { module: "Admin", actions: ["View", "ManageHospital", "ManageUsers", "ManagePermissions", "ManageSettings", "ManageTemplates", "PublishTemplate", "ManageNumbering", "Backup", "Restore", "ViewAudit", "Maintenance", "License", "Sessions"] },
 ];
 
 async function main() {

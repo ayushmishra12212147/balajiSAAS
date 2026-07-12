@@ -25,6 +25,16 @@ const MASTER_PERMISSIONS = [
     actions: ["View", "Create", "Edit", "Delete", "Print"],
   },
   {
+    module: "OPD",
+    label: "Outpatient Department (OPD)",
+    actions: ["View", "Register", "Edit", "Cancel", "Print"],
+  },
+  {
+    module: "IPD",
+    label: "Inpatient Department (IPD)",
+    actions: ["View", "Admit", "Discharge", "Transfer Bed", "Assign Charges", "Reassign Doctor", "Register Birth", "Register Death", "Print"],
+  },
+  {
     module: "Billing",
     label: "Financial & Billing",
     actions: ["View", "Receive Payment", "Refund", "Cancel Invoice", "Apply Discount", "Generate Invoice", "Print"],
@@ -42,12 +52,12 @@ const MASTER_PERMISSIONS = [
   {
     module: "OT",
     label: "Surgical Operation Theater",
-    actions: ["View", "Schedule", "Complete", "Print"],
+    actions: ["View", "Schedule", "Complete", "Print", "Assign Charges", "Register", "Close Operation"],
   },
   {
     module: "Pharmacy",
     label: "Pharmacy & Inventory",
-    actions: ["View", "Purchase", "Sell", "Stock Adjustment", "Return"],
+    actions: ["View", "Purchase", "Sell", "Stock Adjustment", "Return", "Print"],
   },
   {
     module: "Reports",
