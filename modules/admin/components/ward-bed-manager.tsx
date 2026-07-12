@@ -602,11 +602,10 @@ export default function WardBedManager() {
                       >
                         <option value="GENERAL_WARD">General Ward</option>
                         <option value="SEMI_PRIVATE">Semi Private</option>
-                        <option value="PRIVATE_ROOM">Private Room</option>
-                        <option value="DELUXE_SUITE">Deluxe Suite</option>
+                        <option value="PRIVATE">Private Room</option>
                         <option value="ICU">ICU</option>
-                        <option value="NICU">NICU</option>
-                        <option value="CCU">CCU</option>
+                        <option value="HDU">HDU</option>
+                        <option value="EMERGENCY">Emergency</option>
                       </select>
                     </div>
 

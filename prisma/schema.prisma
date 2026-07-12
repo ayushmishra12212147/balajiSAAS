@@ -85,6 +85,8 @@ enum RoomType {
   ICU
   SEMI_PRIVATE
   PRIVATE
+  HDU
+  EMERGENCY
 }
 
 enum BedStatus {
