@@ -83,12 +83,16 @@ export default function IPDAdmissionPage() {
   // Form Fields
   const [departmentId, setDepartmentId] = useState("");
   const [attendingDoctorId, setAttendingDoctorId] = useState("");
+  const [customDoctorName, setCustomDoctorName] = useState("");
   const [referredByDoctorId, setRereferredByDoctorId] = useState("");
   const [admissionSource, setAdmissionSource] = useState("DIRECT");
   const [admissionCategory, setAdmissionCategory] = useState("GENERAL");
-  const [admissionDateTime, setAdmissionDateTime] = useState(
-    new Date().toISOString().substring(0, 16)
-  );
+  const [admissionDateTime, setAdmissionDateTime] = useState(() => {
+    const now = new Date();
+    const offset = now.getTimezoneOffset();
+    const local = new Date(now.getTime() - offset * 60000);
+    return local.toISOString().substring(0, 16);
+  });
   const [initialDepositRequired, setInitialDepositRequired] = useState(0);
   const [isMLC, setIsMLC] = useState(false);
   const [mlcNumber, setMlcNumber] = useState("");
@@ -193,6 +197,10 @@ export default function IPDAdmissionPage() {
       toast.error("Attending Doctor is required.");
       return;
     }
+    if (attendingDoctorId === "88888888-8888-8888-8888-888888888888" && !customDoctorName.trim()) {
+      toast.error("Please enter the custom doctor name.");
+      return;
+    }
     if (!selectedBedId) {
       toast.error("Target Bed allocation is required.");
       return;
@@ -216,6 +224,10 @@ export default function IPDAdmissionPage() {
 
     setSubmitting(true);
     try {
+      const finalAdmissionReason = attendingDoctorId === "88888888-8888-8888-8888-888888888888"
+        ? `[Doctor: ${customDoctorName.trim()}] ${admissionReason}`
+        : admissionReason;
+
       await apiClient("/api/ipd/admissions", {
         method: "POST",
         body: JSON.stringify({
@@ -230,7 +242,7 @@ export default function IPDAdmissionPage() {
           admissionSource,
           admissionCategory,
           initialDepositRequired: Number(initialDepositRequired),
-          admissionReason,
+          admissionReason: finalAdmissionReason,
           attendantName,
           attendantRelationship,
           attendantMobile,
@@ -413,6 +425,21 @@ export default function IPDAdmissionPage() {
                     </option>
                   ))}
                 </select>
+                {attendingDoctorId === "88888888-8888-8888-8888-888888888888" && (
+                  <div className="mt-2.5 space-y-1">
+                    <label className="text-[9px] font-semibold text-slate-450 uppercase tracking-wider block">
+                      Custom Doctor Name <span className="text-red-400">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      value={customDoctorName}
+                      onChange={(e) => setCustomDoctorName(e.target.value)}
+                      className="w-full bg-slate-950 border border-slate-800 text-slate-100 text-xs rounded-xl px-3 py-2.5 outline-none focus:border-emerald-500"
+                      placeholder="Enter custom doctor's name..."
+                    />
+                  </div>
+                )}
               </div>
 
               <div className="space-y-1">
@@ -458,6 +485,9 @@ export default function IPDAdmissionPage() {
                   onChange={(e) => setAdmissionDateTime(e.target.value)}
                   className="w-full bg-slate-950 border border-slate-800 text-slate-100 text-xs rounded-xl px-3 py-2 outline-none focus:border-emerald-500 font-mono"
                 />
+                <p className="text-[9px] text-slate-500 font-mono mt-0.5">
+                  Past dates are allowed for backdated admissions.
+                </p>
               </div>
 
               <div className="space-y-1">

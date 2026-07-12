@@ -87,7 +87,19 @@ export const GET = wrapAuthRoute(async (req: NextRequest, context: Record<string
     "Gender": admission.patient.gender,
     "Contact Number": admission.patient.phone,
     "Department": admission.department.name,
-    "Current Doctor": admission.primaryDoctor.employee.name,
+    "Current Doctor": (() => {
+      let doctorDisplayName = admission.primaryDoctor.employee.name;
+      if (
+        admission.primaryDoctorId === "88888888-8888-8888-8888-888888888888" &&
+        admission.admissionReason?.startsWith("[Doctor: ")
+      ) {
+        const match = admission.admissionReason.match(/^\[Doctor:\s*([^\]]+)\]/);
+        if (match && match[1]) {
+          doctorDisplayName = `${match[1].trim()}`;
+        }
+      }
+      return doctorDisplayName;
+    })(),
     "Ward": admission.bed.room.ward?.name || admission.bed.room.roomType,
     "Room": admission.bed.room.roomNumber,
     "Bed": admission.bed.bedNumber,
@@ -204,7 +216,8 @@ export const GET = wrapAuthRoute(async (req: NextRequest, context: Record<string
     const itemsMap: Record<string, string> = {};
     invoice.charges.forEach((c, idx) => {
       const b = c.billableCharge;
-      itemsMap[`Item ${idx + 1}`] = `${b.chargeCatalog.name} (Qty: ${b.quantity} @ ₹${Number(b.rate).toFixed(0)}) = ₹${Number(b.totalAmount).toFixed(0)}`;
+      const chargeDate = new Date(b.createdAt).toLocaleDateString();
+      itemsMap[`Item ${idx + 1}`] = `${b.chargeCatalog.name} (${chargeDate}) (Qty: ${b.quantity} @ ₹${Number(b.rate).toFixed(0)}) = ₹${Number(b.totalAmount).toFixed(0)}`;
     });
 
     const totalDeposits = invoice.depositAllocations.reduce((acc, curr) => acc + Number(curr.amountAllocated), 0);

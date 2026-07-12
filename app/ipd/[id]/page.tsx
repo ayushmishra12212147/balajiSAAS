@@ -26,13 +26,15 @@ import {
   CheckCircle,
   XCircle,
   HelpCircle,
-  CheckSquare
+  CheckSquare,
+  Trash2
 } from "lucide-react";
 import Link from "next/link";
 
 type PatientDetailsType = {
   id: string;
   ipdId: string;
+  primaryDoctorId: string;
   admissionDate: string;
   dischargeDate: string | null;
   dischargeSummary: string | null;
@@ -824,6 +826,21 @@ export default function IPDDetailsPage() {
     }
   };
 
+  const handleChargeRemove = async (chargeId: string, chargeName: string) => {
+    const confirmed = window.confirm(`Are you sure you want to remove the charge "${chargeName}"? This action cannot be undone.`);
+    if (!confirmed) return;
+    try {
+      await apiClient(`/api/ipd/admissions/${admissionId}/assign-charge`, {
+        method: "DELETE",
+        body: JSON.stringify({ chargeId }),
+      });
+      toast.success("Charge removed successfully.");
+      loadAdmissionData();
+    } catch (err: any) {
+      toast.error(err.message || "Failed to remove charge.");
+    }
+  };
+
   if (loading) {
     return (
       <div className="h-96 flex flex-col items-center justify-center space-y-3">
@@ -961,7 +978,19 @@ export default function IPDDetailsPage() {
           <div>
             <span className="block text-[8px] uppercase tracking-wider text-slate-500">Clinician Department</span>
             <span className="font-semibold text-slate-200">
-              {admission.department.name} | Attending: Dr. {admission.primaryDoctor.employee.name}
+              {admission.department.name} | Attending: Dr. {(() => {
+                let docName = admission.primaryDoctor.employee.name;
+                if (
+                  admission.primaryDoctorId === "88888888-8888-8888-8888-888888888888" &&
+                  admission.admissionReason?.startsWith("[Doctor: ")
+                ) {
+                  const match = admission.admissionReason.match(/^\[Doctor:\s*([^\]]+)\]/);
+                  if (match && match[1]) {
+                    docName = `${match[1].trim()}`;
+                  }
+                }
+                return docName;
+              })()}
             </span>
           </div>
           <div>
@@ -2308,12 +2337,13 @@ export default function IPDDetailsPage() {
                     <th className="py-2.5 px-4 text-right">Rate</th>
                     <th className="py-2.5 px-4 text-center">Qty</th>
                     <th className="py-2.5 px-4 text-right">Total Amount</th>
+                    {!isDischarged && <th className="py-2.5 px-4 text-center">Action</th>}
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-850">
                   {admission.charges.length === 0 ? (
                     <tr>
-                      <td colSpan={6} className="py-8 text-center text-slate-500 font-mono">No billable charges mapped.</td>
+                      <td colSpan={!isDischarged ? 7 : 6} className="py-8 text-center text-slate-500 font-mono">No billable charges mapped.</td>
                     </tr>
                   ) : (
                     admission.charges.map((chg) => (
@@ -2328,6 +2358,18 @@ export default function IPDDetailsPage() {
                         <td className="py-2.5 px-4 text-right font-mono font-bold text-emerald-400">
                           ₹{Number(chg.totalAmount).toFixed(2)}
                         </td>
+                        {!isDischarged && (
+                          <td className="py-2.5 px-4 text-center">
+                            <button
+                              type="button"
+                              onClick={() => handleChargeRemove(chg.id, chg.chargeCatalog.name)}
+                              className="p-1.5 text-red-400/60 hover:text-red-400 hover:bg-red-500/10 rounded-lg transition-all cursor-pointer"
+                              title="Remove this charge"
+                            >
+                              <Trash2 size={13} />
+                            </button>
+                          </td>
+                        )}
                       </tr>
                     ))
                   )}
