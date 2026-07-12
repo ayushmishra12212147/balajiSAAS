@@ -240,7 +240,7 @@ export class BillingService {
       }
 
       return updatedInvoice;
-    });
+    }, { timeout: 30000 });
   }
 
   /**
@@ -364,7 +364,7 @@ export class BillingService {
       });
 
       return updatedInvoice;
-    });
+    }, { timeout: 30000 });
   }
 
   /**
@@ -454,7 +454,7 @@ export class BillingService {
       });
 
       return updatedInvoice;
-    });
+    }, { timeout: 30000 });
   }
 
   /**
@@ -536,7 +536,7 @@ export class BillingService {
       });
 
       return cancelledInvoice;
-    });
+    }, { timeout: 30000 });
   }
 }
 export default BillingService;

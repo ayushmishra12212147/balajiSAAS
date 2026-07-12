@@ -225,7 +225,7 @@ export class PatientService {
       });
 
       return patient;
-    });
+    }, { timeout: 30000 });
 
     // Write audit logs
     const duplicatesBypassed = await this.checkPotentialDuplicates({
@@ -375,7 +375,7 @@ export class PatientService {
       }
 
       return patient;
-    });
+    }, { timeout: 30000 });
 
     // Detect actual diff changes
     const previousState: Record<string, unknown> = {};

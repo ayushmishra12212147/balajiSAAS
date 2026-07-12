@@ -387,7 +387,7 @@ export class OPDService {
         invoice,
         paymentRecord,
       };
-    });
+    }, { timeout: 30000 });
 
     // Write audit logs
     const actionName = isRevisit ? "OPD_REVISIT" : "OPD_REGISTERED";
@@ -553,7 +553,7 @@ export class OPDService {
       }
 
       return updatedOpd;
-    });
+    }, { timeout: 30000 });
 
     // Write audit log
     await logAdminAction({

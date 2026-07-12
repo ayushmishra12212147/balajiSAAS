@@ -96,7 +96,7 @@ export class DiagnosticsService {
       });
 
       return updatedOrder;
-    });
+    }, { timeout: 30000 });
   }
 
   /**
@@ -240,7 +240,7 @@ export class DiagnosticsService {
       });
 
       return updatedOrder;
-    });
+    }, { timeout: 30000 });
   }
 
   /**
@@ -343,7 +343,7 @@ export class DiagnosticsService {
       });
 
       return updatedOrder;
-    });
+    }, { timeout: 30000 });
   }
 
   /**

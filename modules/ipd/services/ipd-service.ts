@@ -208,7 +208,7 @@ export class IPDService {
       });
 
       return admission;
-    });
+    }, { timeout: 30000 });
   }
 
   /**
@@ -317,7 +317,7 @@ export class IPDService {
       });
 
       return updated;
-    });
+    }, { timeout: 30000 });
   }
 
   /**
@@ -392,7 +392,7 @@ export class IPDService {
       });
 
       return updated;
-    });
+    }, { timeout: 30000 });
   }
 
   /**
@@ -488,7 +488,7 @@ export class IPDService {
       });
 
       return charge;
-    });
+    }, { timeout: 30000 });
   }
 
   /**
@@ -623,7 +623,7 @@ export class IPDService {
       });
 
       return updated;
-    });
+    }, { timeout: 30000 });
   }
 
   /**
@@ -674,7 +674,7 @@ export class IPDService {
       });
 
       return updated;
-    });
+    }, { timeout: 30000 });
   }
 
   /**
@@ -752,7 +752,7 @@ export class IPDService {
       });
 
       return birth;
-    });
+    }, { timeout: 30000 });
   }
 
   /**
@@ -867,7 +867,7 @@ export class IPDService {
       });
 
       return death;
-    });
+    }, { timeout: 30000 });
   }
 }
 export default IPDService;

@@ -116,7 +116,7 @@ export class OTService {
       });
 
       return ot;
-    });
+    }, { timeout: 30000 });
   }
 
   /**
@@ -212,7 +212,7 @@ export class OTService {
       });
 
       return charge;
-    });
+    }, { timeout: 30000 });
   }
 
   /**
@@ -253,7 +253,7 @@ export class OTService {
       });
 
       return completed;
-    });
+    }, { timeout: 30000 });
   }
 
   /**
@@ -320,7 +320,7 @@ export class OTService {
       });
 
       return updated;
-    });
+    }, { timeout: 30000 });
   }
 
   /**
@@ -371,7 +371,7 @@ export class OTService {
       });
 
       return cancelled;
-    });
+    }, { timeout: 30000 });
   }
 }
 export default OTService;

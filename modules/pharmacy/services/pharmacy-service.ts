@@ -79,7 +79,7 @@ export class PharmacyService {
       });
 
       return medicine;
-    });
+    }, { timeout: 30000 });
   }
 
   /**
@@ -131,7 +131,7 @@ export class PharmacyService {
       });
 
       return updated;
-    });
+    }, { timeout: 30000 });
   }
 
   /**
@@ -301,7 +301,7 @@ export class PharmacyService {
       });
 
       return purchaseOrder;
-    });
+    }, { timeout: 30000 });
   }
 
   /**
@@ -378,7 +378,7 @@ export class PharmacyService {
       });
 
       return adjustment;
-    });
+    }, { timeout: 30000 });
   }
 
   /**
@@ -597,7 +597,7 @@ export class PharmacyService {
       });
 
       return invoice;
-    });
+    }, { timeout: 30000 });
   }
 
   /**
@@ -733,7 +733,7 @@ export class PharmacyService {
       });
 
       return salesReturn;
-    });
+    }, { timeout: 30000 });
   }
 }
 export default PharmacyService;
