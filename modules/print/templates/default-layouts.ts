@@ -1524,7 +1524,7 @@ th{
 <div class="page">
     <div class="header">
         <div class="hospital">
-            <div class="logo">+</div>
+            <img src="{{hospitalLogo}}" class="logo" style="object-fit: contain; background: transparent; width: 42px; height: 42px; border-radius: 8px;" onerror="this.onerror=null; this.src='data:image/svg+xml;utf8,<svg xmlns=\'http://www.w3.org/2000/svg\' width=\'42\' height=\'42\'><rect width=\'42\' height=\'42\' fill=\'%230f766e\' rx=\'8\'/><text x=\'50%\' y=\'55%\' dominant-baseline=\'middle\' text-anchor=\'middle\' fill=\'white\' font-size=\'20\' font-family=\'sans-serif\' font-weight=\'bold\'>+</text></svg>';" />
             <div class="hospital-info">
                 <h2>{{hospitalName}}</h2>
                 <p>Multi-Speciality Care & Clinical Research</p>
