@@ -234,6 +234,11 @@ export const POST = wrapAuthRoute(async (req: NextRequest) => {
     mobile: printData.content?.["Contact Number"] || printData.content?.["mobile"] || printData.content?.["Mobile"] || printData.content?.["Patient Phone"] || "",
     address: printData.content?.["Address"] || printData.content?.["address"] || "",
 
+    patientAge: printData.content?.["Age"] || printData.content?.["age"] || printData.content?.["Patient Age"] || printData.content?.["patientAge"] || "",
+    patientGender: printData.content?.["Gender"] || printData.content?.["gender"] || printData.content?.["Patient Gender"] || printData.content?.["patientGender"] || "",
+    patientMobile: printData.content?.["Contact Number"] || printData.content?.["mobile"] || printData.content?.["Mobile"] || printData.content?.["Patient Phone"] || printData.content?.["patientMobile"] || "",
+    invoiceNo: printData.content?.["Invoice Number"] || printData.content?.["invoiceNumber"] || printData.content?.["invoiceNo"] || printData.content?.["Invoice No"] || "",
+
     doctorName: printData.content?.["Doctor"] || printData.content?.["doctor"] || printData.content?.["Doctor Name"] || printData.content?.["doctorName"] || printData.content?.["Current Doctor"] || printData.content?.["Attending Doctor"] || printData.content?.["Ordering Doctor"] || printData.content?.["Ref. Doctor"] || "",
     department: printData.content?.["Department"] || printData.content?.["department"] || printData.content?.["Dept"] || printData.content?.["Dept."] || "",
 

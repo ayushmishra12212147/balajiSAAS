@@ -173,6 +173,18 @@ export const GET = wrapAuthRoute(async (req: NextRequest, context: Record<string
 
     const totalDeposits = invoice.depositAllocations.reduce((acc, curr) => acc + Number(curr.amountAllocated), 0);
 
+    // Find associated IPD Admission if this is an IPD invoice
+    const ipdCharge = invoice.charges.find(c => c.billableCharge.sourceModule === "IPD");
+    let ipdAdmission = null;
+    if (ipdCharge?.billableCharge.sourceEntityId) {
+      ipdAdmission = await prisma.iPDAdmission.findUnique({
+        where: { id: ipdCharge.billableCharge.sourceEntityId, isDeleted: false },
+        include: {
+          bed: { include: { room: { include: { ward: true } } } },
+        },
+      });
+    }
+
     printData = {
       title: "Invoice Summary Statement",
       timestamp: new Date().toLocaleString(),
@@ -182,6 +194,12 @@ export const GET = wrapAuthRoute(async (req: NextRequest, context: Record<string
         "UHID": invoice.patient.uhid,
         "Patient Name": invoice.patient.name,
         "Age / Gender": `${age} Years / ${invoice.patient.gender}`,
+        "Age": `${age} Years`,
+        "Gender": invoice.patient.gender,
+        "Contact Number": invoice.patient.phone,
+        "IPD ID": ipdAdmission ? ipdAdmission.ipdId : "",
+        "Ward": ipdAdmission ? (ipdAdmission.bed?.room.ward?.name || ipdAdmission.bed?.room.roomType || "") : "",
+        "Bed": ipdAdmission ? (ipdAdmission.bed?.bedNumber || "") : "",
         ...itemsMap,
         "Gross Total": `INR ${Number(invoice.totalAmount).toFixed(2)}`,
         "Discount Deductions": Number(invoice.discountAmount) > 0 ? `INR ${Number(invoice.discountAmount).toFixed(2)}` : "None",
