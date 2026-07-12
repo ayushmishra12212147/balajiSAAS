@@ -209,31 +209,70 @@ export const GET = wrapAuthRoute(async (req: NextRequest, context: Record<string
     });
 
     if (!invoice) {
-      throw new AppError("No finalized invoice statement found for this admission stay.", 404, "NOT_FOUND");
+      // Fallback: Compile an interim statement based on current accumulated billable charges
+      const activeCharges = await prisma.billableCharge.findMany({
+        where: {
+          sourceModule: "IPD",
+          sourceEntityId: id,
+          isDeleted: false,
+        },
+        include: {
+          chargeCatalog: true,
+        },
+        orderBy: { createdAt: "asc" },
+      });
+
+      title = "Interim Bill Statement";
+      const itemsMap: Record<string, string> = {};
+      activeCharges.forEach((b, idx) => {
+        const chargeDate = new Date(b.createdAt).toLocaleDateString();
+        itemsMap[`Item ${idx + 1}`] = `${b.chargeCatalog.name} (${chargeDate}) (Qty: ${b.quantity} @ ₹${Number(b.rate).toFixed(0)}) = ₹${Number(b.totalAmount).toFixed(0)}`;
+      });
+
+      const grossTotal = activeCharges.reduce((acc, c) => acc + Number(c.totalAmount), 0);
+      
+      const deposits = await prisma.patientDeposit.findMany({
+        where: {
+          patientId: admission.patientId,
+          isRefunded: false,
+          isDeleted: false,
+        },
+      });
+      const totalDeposits = deposits.reduce((acc, curr) => acc + Number(curr.amount), 0);
+
+      content["Invoice Number"] = "INTERIM_BILL";
+      content["Gross Total"] = `INR ${grossTotal.toFixed(2)}`;
+      content["Discount Deductions"] = "None";
+      content["Net Payable"] = `INR ${grossTotal.toFixed(2)}`;
+      content["Credit Deposits Used"] = totalDeposits > 0 ? `INR ${totalDeposits.toFixed(2)}` : "None";
+      content["Cashier Paid Amount"] = `INR ${totalDeposits.toFixed(2)}`;
+      content["Remaining Balance Due"] = `INR ${Math.max(0, grossTotal - totalDeposits).toFixed(2)}`;
+      content["Invoice Status"] = "PENDING";
+      
+      Object.assign(content, itemsMap);
+    } else {
+      title = "Invoice Summary Statement";
+      const itemsMap: Record<string, string> = {};
+      invoice.charges.forEach((c, idx) => {
+        const b = c.billableCharge;
+        const chargeDate = new Date(b.createdAt).toLocaleDateString();
+        itemsMap[`Item ${idx + 1}`] = `${b.chargeCatalog.name} (${chargeDate}) (Qty: ${b.quantity} @ ₹${Number(b.rate).toFixed(0)}) = ₹${Number(b.totalAmount).toFixed(0)}`;
+      });
+
+      const totalDeposits = invoice.depositAllocations.reduce((acc, curr) => acc + Number(curr.amountAllocated), 0);
+      const totalPayments = invoice.payments.reduce((acc, curr) => acc + Number(curr.amountPaid), 0);
+
+      content["Invoice Number"] = invoice.invoiceNumber;
+      content["Gross Total"] = `INR ${Number(invoice.totalAmount).toFixed(2)}`;
+      content["Discount Deductions"] = Number(invoice.discountAmount) > 0 ? `INR ${Number(invoice.discountAmount).toFixed(2)}` : "None";
+      content["Net Payable"] = `INR ${Number(invoice.payableAmount).toFixed(2)}`;
+      content["Credit Deposits Used"] = totalDeposits > 0 ? `INR ${totalDeposits.toFixed(2)}` : "None";
+      content["Cashier Paid Amount"] = `INR ${(totalPayments + totalDeposits).toFixed(2)}`;
+      content["Remaining Balance Due"] = `INR ${Number(invoice.balanceAmount).toFixed(2)}`;
+      content["Invoice Status"] = invoice.paymentStatus;
+      
+      Object.assign(content, itemsMap);
     }
-
-    title = "Invoice Summary Statement";
-    const itemsMap: Record<string, string> = {};
-    invoice.charges.forEach((c, idx) => {
-      const b = c.billableCharge;
-      const chargeDate = new Date(b.createdAt).toLocaleDateString();
-      itemsMap[`Item ${idx + 1}`] = `${b.chargeCatalog.name} (${chargeDate}) (Qty: ${b.quantity} @ ₹${Number(b.rate).toFixed(0)}) = ₹${Number(b.totalAmount).toFixed(0)}`;
-    });
-
-    const totalDeposits = invoice.depositAllocations.reduce((acc, curr) => acc + Number(curr.amountAllocated), 0);
-    const totalPayments = invoice.payments.reduce((acc, curr) => acc + Number(curr.amountPaid), 0);
-
-    content["Invoice Number"] = invoice.invoiceNumber;
-    content["Gross Total"] = `INR ${Number(invoice.totalAmount).toFixed(2)}`;
-    content["Discount Deductions"] = Number(invoice.discountAmount) > 0 ? `INR ${Number(invoice.discountAmount).toFixed(2)}` : "None";
-    content["Net Payable"] = `INR ${Number(invoice.payableAmount).toFixed(2)}`;
-    content["Credit Deposits Used"] = totalDeposits > 0 ? `INR ${totalDeposits.toFixed(2)}` : "None";
-    content["Cashier Paid Amount"] = `INR ${(totalPayments + totalDeposits).toFixed(2)}`;
-    content["Remaining Balance Due"] = `INR ${Number(invoice.balanceAmount).toFixed(2)}`;
-    content["Invoice Status"] = invoice.paymentStatus;
-    
-    // Merge itemsMap into content
-    Object.assign(content, itemsMap);
   } else if (type === "birth") {
     title = "Vital Birth Certificate";
     const birth = admission.births[0];
