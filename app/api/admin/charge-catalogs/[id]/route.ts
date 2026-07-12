@@ -43,6 +43,7 @@ export const PUT = wrapAuthRoute(async (req: NextRequest, context: Record<string
     }
   }
 
+  const isDeleted = validated.isDeleted ?? before.isDeleted;
   const updated = await prisma.chargeCatalog.update({
     where: { id },
     data: {
@@ -51,7 +52,9 @@ export const PUT = wrapAuthRoute(async (req: NextRequest, context: Record<string
       category: validated.category,
       rate: validated.rate,
       otType: validated.otType !== undefined ? validated.otType : before.otType,
-      isDeleted: validated.isDeleted ?? before.isDeleted,
+      isDeleted,
+      deletedAt: isDeleted ? (before.isDeleted ? before.deletedAt : new Date()) : null,
+      deletedBy: isDeleted ? (before.isDeleted ? before.deletedBy : reqContext.employee.id) : null,
     },
   });
 

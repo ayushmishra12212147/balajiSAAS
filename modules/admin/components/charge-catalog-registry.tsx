@@ -58,7 +58,7 @@ export function ChargeCatalogRegistry() {
       category: "",
       rate: 0,
       otType: null,
-      isDeleted: false,
+      isDeleted: "false",
     },
   });
 
@@ -220,7 +220,7 @@ export function ChargeCatalogRegistry() {
                   category: row.category,
                   rate: Number(row.rate),
                   otType: row.otType || null,
-                  isDeleted: row.isDeleted,
+                  isDeleted: row.isDeleted ? "true" : "false",
                 });
                 setEditOpen(true);
               }}
