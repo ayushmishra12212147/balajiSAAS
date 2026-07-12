@@ -9,7 +9,7 @@ import {
 } from "@tanstack/react-table";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { ChargeCatalogFormSchema } from "@/modules/admin/schemas";
+import { ChargeCatalogFormSchema, ChargeCatalogFormRawInput } from "@/modules/admin/schemas";
 import { apiClient } from "@/lib/api-client";
 import { toast } from "sonner";
 import {
@@ -33,8 +33,6 @@ type ChargeCatalogType = {
   otType?: "MINOR" | "MAJOR" | null;
 };
 
-type ChargeCatalogFormInput = z.infer<typeof ChargeCatalogFormSchema>;
-
 export function ChargeCatalogRegistry() {
   const [catalogs, setCatalogs] = useState<ChargeCatalogType[]>([]);
   const [loading, setLoading] = useState(true);
@@ -52,7 +50,7 @@ export function ChargeCatalogRegistry() {
     handleSubmit: handleSubmitCreate,
     reset: resetCreate,
     formState: { errors: errorsCreate },
-  } = useForm<ChargeCatalogFormInput>({
+  } = useForm<ChargeCatalogFormRawInput>({
     resolver: zodResolver(ChargeCatalogFormSchema),
     defaultValues: {
       name: "",
@@ -69,7 +67,7 @@ export function ChargeCatalogRegistry() {
     handleSubmit: handleSubmitEdit,
     reset: resetEdit,
     formState: { errors: errorsEdit },
-  } = useForm<ChargeCatalogFormInput>({
+  } = useForm<ChargeCatalogFormRawInput>({
     resolver: zodResolver(ChargeCatalogFormSchema),
   });
 
@@ -89,12 +87,17 @@ export function ChargeCatalogRegistry() {
     loadData();
   }, []);
 
-  const handleCreate = async (data: ChargeCatalogFormInput) => {
+  const handleCreate = async (data: ChargeCatalogFormRawInput) => {
     setSaving(true);
     try {
+      const payload = {
+        ...data,
+        otType: data.otType === "" ? null : data.otType,
+        isDeleted: typeof data.isDeleted === "string" ? data.isDeleted === "true" : !!data.isDeleted,
+      };
       await apiClient("/api/admin/charge-catalogs", {
         method: "POST",
-        body: JSON.stringify(data),
+        body: JSON.stringify(payload),
       });
       toast.success("Charge catalog item created successfully.");
       setCreateOpen(false);
@@ -108,13 +111,18 @@ export function ChargeCatalogRegistry() {
     }
   };
 
-  const handleEdit = async (data: ChargeCatalogFormInput) => {
+  const handleEdit = async (data: ChargeCatalogFormRawInput) => {
     if (!selectedCatalog) return;
     setSaving(true);
     try {
+      const payload = {
+        ...data,
+        otType: data.otType === "" ? null : data.otType,
+        isDeleted: typeof data.isDeleted === "string" ? data.isDeleted === "true" : !!data.isDeleted,
+      };
       await apiClient(`/api/admin/charge-catalogs/${selectedCatalog.id}`, {
         method: "PUT",
-        body: JSON.stringify(data),
+        body: JSON.stringify(payload),
       });
       toast.success("Charge catalog item updated successfully.");
       setEditOpen(false);
@@ -566,7 +574,6 @@ export function ChargeCatalogRegistry() {
                 <select
                   {...registerEdit("isDeleted")}
                   className="w-full bg-slate-950 border border-slate-800 text-slate-100 text-xs rounded-xl px-3 py-2.5 outline-none"
-                  onChange={(e) => resetEdit((prev) => ({ ...prev, isDeleted: e.target.value === "true" }))}
                 >
                   <option value="false">Active / Available</option>
                   <option value="true">Disabled / Soft Deleted</option>

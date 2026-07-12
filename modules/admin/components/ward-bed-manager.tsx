@@ -606,6 +606,7 @@ export default function WardBedManager() {
                         <option value="ICU">ICU</option>
                         <option value="HDU">HDU</option>
                         <option value="EMERGENCY">Emergency</option>
+                        <option value="NICU">NICU</option>
                       </select>
                     </div>
 

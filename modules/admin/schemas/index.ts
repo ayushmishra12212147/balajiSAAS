@@ -115,8 +115,18 @@ export const ChargeCatalogFormSchema = z.object({
     .regex(/^[A-Z0-9_]+$/, "Code must be alphanumeric, uppercase, and can contain underscores"),
   category: z.string().min(2, "Category must be at least 2 characters").max(50),
   rate: z.number().min(0, "Rate must be greater than or equal to 0"),
-  otType: z.enum(["MINOR", "MAJOR"]).nullable().optional(),
-  isDeleted: z.boolean().optional(),
+  otType: z
+    .union([z.enum(["MINOR", "MAJOR"]), z.literal(""), z.null()])
+    .transform((val) => (val === "" ? null : val))
+    .optional(),
+  isDeleted: z
+    .union([z.boolean(), z.string()])
+    .transform((val) => {
+      if (typeof val === "boolean") return val;
+      return val === "true";
+    })
+    .optional(),
 });
 export type ChargeCatalogFormInput = z.infer<typeof ChargeCatalogFormSchema>;
+export type ChargeCatalogFormRawInput = z.input<typeof ChargeCatalogFormSchema>;
 
