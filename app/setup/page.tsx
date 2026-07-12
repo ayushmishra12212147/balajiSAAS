@@ -80,7 +80,7 @@ export default function SetupWizardPage() {
           <AlertTriangle className="w-12 h-12 text-amber-500 mx-auto" />
           <h1 className="text-xl font-bold text-slate-200">Desktop Only</h1>
           <p className="text-sm text-zinc-400">
-            This setup wizard is only available in the Balaji HMS desktop application.
+            This setup wizard is only available in the Swastik HMS desktop application.
             Please launch HMS from the installed desktop application.
           </p>
         </div>
@@ -283,7 +283,7 @@ export default function SetupWizardPage() {
           <div className="flex-1 flex flex-col justify-center space-y-6">
             <div className="text-center space-y-2">
               <Hospital className="w-16 h-16 text-emerald-500 mx-auto" />
-              <h1 className="text-2xl font-bold text-slate-100">Welcome to Balaji HMS</h1>
+              <h1 className="text-2xl font-bold text-slate-100">Welcome to Swastik HMS</h1>
               <p className="text-sm text-zinc-400 max-w-md mx-auto">
                 Hospital Management System v2.0 — Let&apos;s set up your system for the first time.
               </p>

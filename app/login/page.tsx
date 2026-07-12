@@ -53,7 +53,7 @@ export default function LoginPage() {
           <div className="bg-gradient-to-br from-emerald-500 to-teal-600 p-4 rounded-2xl shadow-lg mb-3">
             <Building2 size={36} className="text-white" />
           </div>
-          <h2 className="text-2xl font-bold text-slate-100 tracking-tight">Balaji Hospital</h2>
+          <h2 className="text-2xl font-bold text-slate-100 tracking-tight">Swastik Hospital</h2>
           <p className="text-xs text-slate-400 mt-1">Sign in to your HMS terminal</p>
         </div>
 

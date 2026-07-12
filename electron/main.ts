@@ -38,7 +38,7 @@ function createWindow(url: string): BrowserWindow {
     minWidth: 1024,
     minHeight: 700,
     show: false, // Don't show until fully ready
-    title: "Balaji HMS",
+    title: "Swastik HMS",
     icon: getIconPath(),
     backgroundColor: "#020617", // slate-950
     webPreferences: {
@@ -92,7 +92,7 @@ function getIconPath(): string | undefined {
 async function startApplication(): Promise<void> {
   // Initialize crash handlers
   crashHandler.initialize();
-  crashHandler.logEvent("startup", "Launching Balaji HMS Online...");
+  crashHandler.logEvent("startup", "Launching Swastik HMS Online...");
 
   // Register IPC handlers (keeps preload hooks happy)
   registerIpcHandlers(configManager, serverManager, crashHandler, toolkit);
@@ -101,7 +101,7 @@ async function startApplication(): Promise<void> {
   const onlineUrl = "https://balaji.medserve.me/login";
   mainWindow = createWindow(onlineUrl);
 
-  crashHandler.logEvent("startup", "Balaji HMS Online loaded.");
+  crashHandler.logEvent("startup", "Swastik HMS Online loaded.");
 }
 
 /**

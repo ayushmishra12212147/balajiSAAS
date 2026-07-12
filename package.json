@@ -58,8 +58,8 @@
     "seed": "npx tsx prisma/seed.ts"
   },
   "build": {
-    "appId": "com.balaji.hms",
-    "productName": "Balaji HMS",
+    "appId": "com.swastik.hms",
+    "productName": "Swastik HMS",
     "directories": {
       "output": "release"
     },
@@ -85,9 +85,9 @@
       "allowToChangeInstallationDirectory": true,
       "createDesktopShortcut": true,
       "createStartMenuShortcut": true,
-      "shortcutName": "Balaji HMS",
+      "shortcutName": "Swastik HMS",
       "installerSidebar": null,
-      "uninstallDisplayName": "Balaji HMS"
+      "uninstallDisplayName": "Swastik HMS"
     }
   }
 }

@@ -776,10 +776,10 @@ export default function PrintTemplatesDashboard() {
                   title="HTML Template Preview"
                   srcDoc={rawHtmlCode
                     .replace(/\{\{Hospital\.LogoUrl\}\}/g, "https://via.placeholder.com/150")
-                    .replace(/\{\{Hospital\.Name\}\}/g, "Balaji Hospital")
-                    .replace(/\{\{Hospital\.Address\}\}/g, "Circular Road, Balaji Complex, NCR")
+                    .replace(/\{\{Hospital\.Name\}\}/g, "Swastik Hospital")
+                    .replace(/\{\{Hospital\.Address\}\}/g, "Circular Road, Swastik Complex, NCR")
                     .replace(/\{\{Hospital\.Phone\}\}/g, "0123456789")
-                    .replace(/\{\{Hospital\.Email\}\}/g, "info@balajihospital.com")
+                    .replace(/\{\{Hospital\.Email\}\}/g, "info@swastikhospital.com")
                     .replace(/\{\{Patient\.UHID\}\}/g, "UHID-2026-00015")
                     .replace(/\{\{Patient\.Name\}\}/g, "Jane Doe")
                     .replace(/\{\{Patient\.Age\}\}/g, "28")

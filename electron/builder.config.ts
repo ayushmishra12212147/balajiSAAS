@@ -19,9 +19,9 @@
  * This mirrors what's in package.json "build" section.
  */
 export const builderConfig = {
-  appId: "com.balaji.hms",
-  productName: "Balaji HMS",
-  copyright: "Copyright © 2026 Balaji HMS",
+  appId: "com.swastik.hms",
+  productName: "Swastik HMS",
+  copyright: "Copyright © 2026 Swastik HMS",
 
   directories: {
     output: "release",

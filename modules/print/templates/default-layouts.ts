@@ -2152,7 +2152,7 @@ body{
     {
       id: "base_watermark",
       type: "Text",
-      content: "CONFIDENTIAL - BALAJI HOSPITAL",
+      content: "CONFIDENTIAL - SWASTIK HOSPITAL",
       x: 10,
       y: 50,
       w: 80,
@@ -2652,7 +2652,7 @@ body{
       { id: "lbl_b_cert", type: "Text", content: "Certificate No:", x: 5, y: 34, w: 20, h: 3, fontSize: 9, bold: true },
       { id: "val_b_cert", type: "DynamicField", fieldName: "Birth.CertificateNumber", x: 26, y: 34, w: 30, h: 3, fontSize: 9 },
       { id: "cert_box", type: "Rectangle", x: 5, y: 39, w: 90, h: 38, borderColor: "#cbd5e1" },
-      { id: "cert_p1", type: "Text", content: "This is to certify that the child whose details are recorded below was born in Balaji Hospital", x: 10, y: 42, w: 80, h: 4, fontSize: 10, align: "center" },
+      { id: "cert_p1", type: "Text", content: "This is to certify that the child whose details are recorded below was born in Swastik Hospital", x: 10, y: 42, w: 80, h: 4, fontSize: 10, align: "center" },
       { id: "lbl_baby_name", type: "Text", content: "Baby Name:", x: 15, y: 48, w: 25, h: 2.5, fontSize: 9, bold: true },
       { id: "val_baby_name", type: "DynamicField", fieldName: "Birth.BabyName", x: 42, y: 48, w: 45, h: 2.5, fontSize: 9 },
       { id: "lbl_baby_gender", type: "Text", content: "Gender:", x: 15, y: 52, w: 25, h: 2.5, fontSize: 9, bold: true },
@@ -2673,7 +2673,7 @@ body{
       { id: "lbl_d_cert", type: "Text", content: "Certificate No:", x: 5, y: 34, w: 20, h: 3, fontSize: 9, bold: true },
       { id: "val_d_cert", type: "DynamicField", fieldName: "Death.CertificateNumber", x: 26, y: 34, w: 30, h: 3, fontSize: 9 },
       { id: "cert_box_d", type: "Rectangle", x: 5, y: 39, w: 90, h: 38, borderColor: "#cbd5e1" },
-      { id: "cert_p1_d", type: "Text", content: "This is to certify that the patient recorded below expired in Balaji Hospital", x: 10, y: 42, w: 80, h: 4, fontSize: 10, align: "center" },
+      { id: "cert_p1_d", type: "Text", content: "This is to certify that the patient recorded below expired in Swastik Hospital", x: 10, y: 42, w: 80, h: 4, fontSize: 10, align: "center" },
       { id: "lbl_dec_name", type: "Text", content: "Deceased Name:", x: 15, y: 48, w: 25, h: 2.5, fontSize: 9, bold: true },
       { id: "val_dec_name", type: "DynamicField", fieldName: "Patient.Name", x: 42, y: 48, w: 45, h: 2.5, fontSize: 9 },
       { id: "lbl_dec_age", type: "Text", content: "Age / Gender:", x: 15, y: 52, w: 25, h: 2.5, fontSize: 9, bold: true },
@@ -2788,7 +2788,7 @@ body{
   if (type === "MEDICAL_CERTIFICATE") {
     return [
       { id: "cert_box_m", type: "Rectangle", x: 5, y: 34, w: 90, h: 42, borderColor: "#cbd5e1" },
-      { id: "mc_p1", type: "Text", content: "This is to certify that the patient recorded below was under treatment at Balaji Hospital.", x: 10, y: 37, w: 80, h: 4, fontSize: 10, align: "center" },
+      { id: "mc_p1", type: "Text", content: "This is to certify that the patient recorded below was under treatment at Swastik Hospital.", x: 10, y: 37, w: 80, h: 4, fontSize: 10, align: "center" },
       { id: "lbl_mc_diag", type: "Text", content: "Diagnosis / Sickness:", x: 15, y: 44, w: 25, h: 2.5, fontSize: 9, bold: true },
       { id: "val_mc_diag", type: "Text", content: "Acute respiratory tract infection with high grade fever", x: 42, y: 44, w: 45, h: 2.5, fontSize: 9 },
       { id: "lbl_mc_rest", type: "Text", content: "Rest Period Recommended:", x: 15, y: 49, w: 25, h: 2.5, fontSize: 9, bold: true },

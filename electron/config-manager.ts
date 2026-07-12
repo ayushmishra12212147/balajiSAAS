@@ -47,7 +47,7 @@ const DEFAULT_CONFIG: HMSConfig = {
     database: "postgres",
   },
   hospital: {
-    name: "Balaji Hospital",
+    name: "Swastik Hospital",
     setupComplete: true,
   },
   server: {

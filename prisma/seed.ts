@@ -21,11 +21,11 @@ async function main() {
   if (!hospital) {
     hospital = await prisma.hospital.create({
       data: {
-        name: "Balaji Hospital",
-        code: "BH",
+        name: "Swastik Hospital",
+        code: "SH",
         phone: "0123456789",
-        email: "info@balajihospital.com",
-        address: "Circular Road, Balaji Complex, NCR",
+        email: "info@swastikhospital.com",
+        address: "Circular Road, Swastik Complex, NCR",
         currentVersion: "2.0.0",
       },
     });
