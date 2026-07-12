@@ -82,6 +82,7 @@ export default function RegisterOPDPage() {
   const preselectedPatientId = searchParams.get("patientId");
   const [saving, setSaving] = useState(false);
   const [showQuickForm, setShowQuickForm] = useState(false);
+  const [customDoctorName, setCustomDoctorName] = useState("");
 
   // Data fetching states
   const [departments, setDepartments] = useState<DepartmentType[]>([]);
@@ -225,11 +226,18 @@ export default function RegisterOPDPage() {
       toast.error("Please select or register a patient first.");
       return;
     }
+    if (data.doctorId === "88888888-8888-8888-8888-888888888888" && !customDoctorName.trim()) {
+      toast.error("Please enter the name of the doctor.");
+      return;
+    }
     setSaving(true);
     try {
       const payload = {
         ...data,
         patientId: selectedPatient.id,
+        symptoms: data.doctorId === "88888888-8888-8888-8888-888888888888"
+          ? `[Ref. Doctor: ${customDoctorName.trim()}] ${data.symptoms || ""}`.trim()
+          : data.symptoms,
       };
 
       const res = await apiClient<{ id: string; opdId: string; tokenNumber: number; invoiceId?: string }>("/api/opd", {
@@ -239,6 +247,10 @@ export default function RegisterOPDPage() {
 
       toast.success(`OPD Consultation registered! ID: ${res.opdId}`);
 
+      const doctorDisplayName = data.doctorId === "88888888-8888-8888-8888-888888888888"
+        ? customDoctorName.trim()
+        : (doctors.find((d) => d.id === data.doctorId)?.employee.name || "Physician");
+
       // Call central Print Engine API to compile the opd-slip
       const printResult = await apiClient<{ renderedPayload: string }>("/api/print", {
         method: "POST",
@@ -247,7 +259,7 @@ export default function RegisterOPDPage() {
           printData: {
             title: "OPD Registration Slip",
             timestamp: new Date().toLocaleString("en-IN"),
-            hospitalName: user?.hospitalName || "Shree Ganesha Hospital",
+            hospitalName: user?.hospitalName || "Swastik Hospital",
             content: {
               "OPD ID": res.opdId,
               "Token Number": res.tokenNumber,
@@ -255,11 +267,11 @@ export default function RegisterOPDPage() {
               "Patient Name": selectedPatient.name,
               "Age": calculateAge(selectedPatient.dob || ""),
               "Gender": selectedPatient.gender || "--",
-              "Doctor": doctors.find((d) => d.id === data.doctorId)?.employee.name || "Physician",
+              "Doctor": doctorDisplayName,
               "Department": departments.find((d) => d.id === data.departmentId)?.name || "General",
               "Visit Type": visitType,
               "Consultation Fee": data.appliedFee,
-              "Symptoms / Remarks": data.symptoms || "N/A",
+              "Symptoms / Remarks": payload.symptoms || "N/A",
               "Date": new Date().toLocaleDateString("en-IN"),
             },
             footer: "Please wait outside the doctor's room. Retain this slip.",
@@ -284,7 +296,7 @@ export default function RegisterOPDPage() {
             printData: {
               title: "OPD Consultation Slip",
               timestamp: new Date().toLocaleString("en-IN"),
-              hospitalName: user?.hospitalName || "Shree Ganesha Hospital",
+              hospitalName: user?.hospitalName || "Swastik Hospital",
               content: {
                 "OPD ID": res.opdId,
                 "Token Number": res.tokenNumber,
@@ -292,11 +304,11 @@ export default function RegisterOPDPage() {
                 "Patient Name": selectedPatient.name,
                 "Age": calculateAge(selectedPatient.dob || ""),
                 "Gender": selectedPatient.gender || "--",
-                "Doctor": doctors.find((d) => d.id === data.doctorId)?.employee.name || "Physician",
+                "Doctor": doctorDisplayName,
                 "Department": departments.find((d) => d.id === data.departmentId)?.name || "General",
                 "Visit Type": visitType,
                 "Consultation Fee": data.appliedFee,
-                "Symptoms / Remarks": data.symptoms || "N/A",
+                "Symptoms / Remarks": payload.symptoms || "N/A",
                 "Date": new Date().toLocaleDateString("en-IN"),
                 "Mobile": selectedPatient.phone || "--",
                 "Address": selectedPatient.address || "--",
@@ -329,6 +341,7 @@ export default function RegisterOPDPage() {
       });
       setSelectedPatient(null);
       setPatientSearch("");
+      setCustomDoctorName("");
       setVisitType("New");
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : "Failed to register OPD encounter.";
@@ -535,8 +548,22 @@ export default function RegisterOPDPage() {
                           {doc.employee.name} [{doc.specialization}] (Fee: ₹{Number(doc.consultationFee).toFixed(0)})
                         </option>
                       ))}
+                      <option value="88888888-8888-8888-8888-888888888888">Other / External Doctor</option>
                     </select>
                     {errors.doctorId && <p className="text-red-400 text-[10px]">{errors.doctorId.message}</p>}
+
+                    {watchDoctorId === "88888888-8888-8888-8888-888888888888" && (
+                      <div className="space-y-1 mt-2 animate-in slide-in-from-top-1 duration-150">
+                        <label className="text-[10px] font-semibold text-emerald-450 uppercase tracking-wider">Doctor Name *</label>
+                        <input
+                          type="text"
+                          value={customDoctorName}
+                          onChange={(e) => setCustomDoctorName(e.target.value)}
+                          className="w-full bg-slate-950 border border-slate-800 hover:border-slate-700 focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 text-slate-100 text-xs rounded-xl px-3 py-2 outline-none transition-all placeholder-slate-600"
+                          placeholder="Enter doctor's full name"
+                        />
+                      </div>
+                    )}
                   </div>
 
                   {/* Visit Type */}
@@ -572,6 +599,56 @@ export default function RegisterOPDPage() {
                 </h3>
 
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  {/* Fee Presets Option */}
+                  <div className="md:col-span-3 space-y-2 pb-2 border-b border-slate-850">
+                    <label className="text-[10px] font-bold text-emerald-400 uppercase tracking-wider">Fee Presets</label>
+                    <div className="flex flex-wrap gap-2">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setValue("originalFee", 200);
+                          setValue("appliedFee", 200);
+                        }}
+                        className={`text-xs px-3.5 py-2 rounded-xl border font-semibold transition-all cursor-pointer ${
+                          watchAppliedFee === 200
+                            ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/30"
+                            : "bg-slate-950 hover:bg-slate-900 text-slate-350 border-slate-800 hover:border-slate-750"
+                        }`}
+                      >
+                        OPD Fee (₹200)
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setValue("originalFee", 300);
+                          setValue("appliedFee", 300);
+                        }}
+                        className={`text-xs px-3.5 py-2 rounded-xl border font-semibold transition-all cursor-pointer ${
+                          watchAppliedFee === 300
+                            ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/30"
+                            : "bg-slate-950 hover:bg-slate-900 text-slate-350 border-slate-800 hover:border-slate-750"
+                        }`}
+                      >
+                        Emergency OPD Fee (₹300)
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const doc = doctors.find((d) => d.id === watchDoctorId);
+                          const fee = doc ? Number(doc.consultationFee) : 0;
+                          setValue("originalFee", fee);
+                          setValue("appliedFee", fee);
+                        }}
+                        className={`text-xs px-3.5 py-2 rounded-xl border font-semibold transition-all cursor-pointer ${
+                          watchDoctorId && watchDoctorId !== "88888888-8888-8888-8888-888888888888" && watchAppliedFee !== 200 && watchAppliedFee !== 300
+                            ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/30"
+                            : "bg-slate-950 hover:bg-slate-900 text-slate-350 border-slate-800 hover:border-slate-750"
+                        }`}
+                      >
+                        Doctor Standard Fee (₹{Number(doctors.find((d) => d.id === watchDoctorId)?.consultationFee || 0).toFixed(0)})
+                      </button>
+                    </div>
+                  </div>
                   {/* Standard doctor fee */}
                   <div className="space-y-1">
                     <label className="text-xs font-semibold text-slate-400">Standard Doctor Fee</label>
