@@ -47,6 +47,14 @@ export const ReceivePaymentSchema = z
     invoiceId: z.string().uuid("Invalid invoice identifier"),
     version: z.number().int().min(1, "Invalid invoice version number"),
     totalAmount: z.number().min(0.01, "Submitted payment amount must be positive"),
+    discountAmount: z.preprocess(
+      (val) => {
+        if (val === "" || val === null || val === undefined || Number.isNaN(Number(val))) return 0;
+        return Number(val);
+      },
+      z.number().min(0, "Discount amount cannot be negative")
+    ).optional().default(0),
+    discountReason: z.string().max(500, "Discount reason must be under 500 characters").optional().nullable(),
     payments: z
       .array(
         z.object({

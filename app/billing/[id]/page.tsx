@@ -128,6 +128,16 @@ export default function InvoiceDetailsPage() {
   const [modesBreakdown, setModesBreakdown] = useState<ModeBreakdown[]>([
     { mode: "CASH", amount: 0, reference: "" },
   ]);
+  const [checkoutDiscount, setCheckoutDiscount] = useState<number>(0);
+  const [checkoutDiscountReason, setCheckoutDiscountReason] = useState<string>("");
+
+  const handleDiscountChange = (discountVal: number) => {
+    setCheckoutDiscount(discountVal);
+    const balance = invoice ? Number(invoice.balanceAmount) : 0;
+    const remaining = Math.max(0, balance - discountVal);
+    setSubmitAmount(remaining);
+    setModesBreakdown([{ mode: "CASH", amount: remaining, reference: "" }]);
+  };
 
   // Refund states
   const [refundAmount, setRefundAmount] = useState(0);
@@ -143,6 +153,8 @@ export default function InvoiceDetailsPage() {
       setInvoice(data);
       setSubmitAmount(Number(data.balanceAmount));
       setModesBreakdown([{ mode: "CASH", amount: Number(data.balanceAmount), reference: "" }]);
+      setCheckoutDiscount(0);
+      setCheckoutDiscountReason("");
       setRefundAmount(0);
       setRefundReason("");
       setCancelReason("");
@@ -184,6 +196,11 @@ export default function InvoiceDetailsPage() {
       return;
     }
 
+    if (checkoutDiscount > 0 && !checkoutDiscountReason.trim()) {
+      toast.error("Please enter a discount reason when applying a discount.");
+      return;
+    }
+
     setActionSaving(true);
     try {
       await apiClient(`/api/billing/invoices/${invoiceId}/pay`, {
@@ -192,6 +209,8 @@ export default function InvoiceDetailsPage() {
           invoiceId,
           version: invoice!.version,
           totalAmount: submitAmount,
+          discountAmount: Number(checkoutDiscount),
+          discountReason: checkoutDiscountReason || null,
           payments: modesBreakdown.map((pm) => ({
             amount: Number(pm.amount),
             mode: pm.mode,
@@ -621,17 +640,46 @@ export default function InvoiceDetailsPage() {
             </div>
 
             <form onSubmit={handlePaymentSubmit} className="space-y-4">
-              <div className="space-y-1.5">
-                <label className="text-[10px] font-semibold text-slate-400">Total Submitted Amount *</label>
-                <input
-                  type="number"
-                  step="0.01"
-                  required
-                  value={submitAmount}
-                  onChange={(e) => setSubmitAmount(Number(e.target.value))}
-                  className="w-full bg-slate-950 border border-slate-800 text-slate-100 text-xs rounded-xl px-3 py-2 outline-none font-mono"
-                />
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-1.5">
+                  <label className="text-[10px] font-semibold text-slate-400">Discount (in ₹ / Money)</label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    max={invoice ? Number(invoice.balanceAmount) : 0}
+                    value={checkoutDiscount || ""}
+                    onChange={(e) => handleDiscountChange(Number(e.target.value))}
+                    placeholder="Enter discount amount"
+                    className="w-full bg-slate-950 border border-slate-800 text-slate-100 text-xs rounded-xl px-3 py-2 outline-none font-mono"
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <label className="text-[10px] font-semibold text-slate-400">Total Paid Amount *</label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    required
+                    value={submitAmount}
+                    onChange={(e) => setSubmitAmount(Number(e.target.value))}
+                    className="w-full bg-slate-950 border border-slate-800 text-slate-100 text-xs rounded-xl px-3 py-2 outline-none font-mono"
+                  />
+                </div>
               </div>
+
+              {checkoutDiscount > 0 && (
+                <div className="space-y-1.5">
+                  <label className="text-[10px] font-semibold text-slate-400">Discount Reason *</label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="e.g. CSR Waiver, Staff Discount, Round off"
+                    value={checkoutDiscountReason}
+                    onChange={(e) => setCheckoutDiscountReason(e.target.value)}
+                    className="w-full bg-slate-950 border border-slate-800 text-slate-100 text-xs rounded-xl px-3 py-2 outline-none"
+                  />
+                </div>
+              )}
 
               <div className="space-y-3">
                 <div className="flex justify-between items-center border-b border-slate-800 pb-1">

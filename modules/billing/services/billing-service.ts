@@ -292,6 +292,51 @@ export class BillingService {
         );
       }
 
+      let updatedPayableAmount = Number(invoice.payableAmount);
+      let updatedDiscountAmount = Number(invoice.discountAmount);
+      let updatedDiscountPercentage = Number(invoice.discountPercentage || 0);
+
+      if (input.discountAmount && input.discountAmount > 0) {
+        const currentBalance = Number(invoice.balanceAmount);
+        if (input.discountAmount > currentBalance) {
+          throw new AppError(
+            `Discount amount (₹${input.discountAmount}) cannot exceed the current outstanding balance (₹${currentBalance}).`,
+            400,
+            "INVALID_DISCOUNT"
+          );
+        }
+
+        updatedDiscountAmount += input.discountAmount;
+        updatedPayableAmount -= input.discountAmount;
+        if (Number(invoice.totalAmount) > 0) {
+          updatedDiscountPercentage = (updatedDiscountAmount / Number(invoice.totalAmount)) * 100;
+        }
+
+        await tx.invoice.update({
+          where: { id: input.invoiceId },
+          data: {
+            discountAmount: new Prisma.Decimal(updatedDiscountAmount),
+            discountPercentage: new Prisma.Decimal(updatedDiscountPercentage),
+            payableAmount: new Prisma.Decimal(updatedPayableAmount),
+            discountReason: input.discountReason || invoice.discountReason || "Discount at checkout",
+            discountApprovedBy: employeeId,
+          },
+        });
+
+        // Log discount audit log inside same transaction
+        await logAdminAction({
+          action: "DISCOUNT_APPLIED",
+          resource: "Invoice",
+          entityId: invoice.id,
+          newState: {
+            discountAmount: updatedDiscountAmount,
+            payableAmount: updatedPayableAmount,
+            reason: input.discountReason || "Discount at checkout",
+          },
+          description: `Applied checkout discount of ₹${input.discountAmount} on invoice ${invoice.invoiceNumber}.`,
+        }, tx);
+      }
+
       // Group payments breakdown under a unique transaction ID
       const transactionGroupId = `PAY-${randomUUID().substring(0, 8).toUpperCase()}`;
 
@@ -327,7 +372,7 @@ export class BillingService {
       const totalAllocatedSum = allocations.reduce((acc, curr) => acc + Number(curr.amountAllocated), 0);
 
       // balance = payable - deposits - payments + refunds
-      const outstandingBalance = Number(invoice.payableAmount) - totalAllocatedSum - totalPaidSum + totalRefundedSum;
+      const outstandingBalance = updatedPayableAmount - totalAllocatedSum - totalPaidSum + totalRefundedSum;
       const finalBalance = Math.max(0, outstandingBalance);
 
       // Determine Status
