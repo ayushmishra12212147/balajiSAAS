@@ -169,8 +169,8 @@ export class OTService {
           rateVal = Number(catalog.rate);
         }
       } else if (data.customName) {
-        // Create an ad-hoc custom charge catalog entry so it can be linked
-        const code = `CUSTOM_OT_${Date.now()}_${Math.floor(Math.random() * 1000)}`;
+        // Create an ad-hoc custom charge catalog entry so it can be linked (keep code <= 20 chars)
+        const code = `COT_${Date.now().toString(36).toUpperCase()}_${Math.floor(Math.random() * 1000)}`;
         const customCatalog = await tx.chargeCatalog.create({
           data: {
             code,

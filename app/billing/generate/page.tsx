@@ -194,6 +194,26 @@ export default function GenerateInvoicePage() {
       toast.error("At least one pending charge must be selected to generate an invoice.");
       return;
     }
+
+    const totalAmount = statement
+      ? statement.pendingCharges
+          .filter((c) => selectedChargeIds.includes(c.id))
+          .reduce((acc, curr) => acc + Number(curr.totalAmount), 0)
+      : 0;
+
+    const discountAmount = Number(data.discountAmount) || 0;
+    const discountPercentage = Number(data.discountPercentage) || 0;
+
+    if (discountPercentage > 100) {
+      toast.error("Discount percentage cannot exceed 100%.");
+      return;
+    }
+
+    if (discountAmount > totalAmount) {
+      toast.error("Discount amount cannot exceed the total charges amount.");
+      return;
+    }
+
     setGenerating(true);
     try {
       const payload = {

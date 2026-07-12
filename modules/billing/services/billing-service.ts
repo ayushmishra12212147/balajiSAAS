@@ -83,10 +83,18 @@ export class BillingService {
       let discountAmount = Number(input.discountAmount) || 0;
       let discountPercentage = Number(input.discountPercentage) || 0;
 
+      if (discountPercentage > 100) {
+        throw new AppError("Discount percentage cannot exceed 100%.", 400, "BAD_REQUEST");
+      }
+
       if (discountPercentage > 0) {
         discountAmount = totalAmount * (discountPercentage / 100);
       } else if (discountAmount > 0) {
         discountPercentage = (discountAmount / totalAmount) * 100;
+      }
+
+      if (discountAmount > totalAmount) {
+        throw new AppError("Discount amount cannot exceed the total charges amount.", 400, "BAD_REQUEST");
       }
 
       const discountDecimal = new Prisma.Decimal(discountAmount);
