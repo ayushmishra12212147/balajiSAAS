@@ -212,7 +212,7 @@ export class BillingService {
           paymentStatus: updatedInvoice.paymentStatus,
         },
         description: `Generated invoice ${invoiceNumber} for patient. Total: ₹${totalAmount}, Payable: ₹${payableAmount}, Deposits used: ₹${totalDepositApplied}.`,
-      });
+      }, tx);
 
       if (totalDepositApplied > 0) {
         await logAdminAction({
@@ -221,7 +221,7 @@ export class BillingService {
           entityId: invoice.id,
           newState: { depositApplied: totalDepositApplied },
           description: `Applied ₹${totalDepositApplied} from deposits ledger to Invoice ${invoiceNumber}.`,
-        });
+        }, tx);
       }
 
       if (discountAmount > 0) {
@@ -236,7 +236,7 @@ export class BillingService {
             approvedBy: employeeId,
           },
           description: `Applied discount of ₹${discountAmount} (${discountPercentage.toFixed(1)}%) to Invoice ${invoiceNumber}.`,
-        });
+        }, tx);
       }
 
       return updatedInvoice;

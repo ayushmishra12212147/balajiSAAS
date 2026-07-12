@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import { RequestContextService } from "@/lib/services/request-context-service";
+import { Prisma } from "@prisma/client";
 
 interface LogAdminActionParams {
   action: string;
@@ -17,7 +18,10 @@ interface LogAdminActionParams {
  * Automatically resolves active requestId, operator employeeId, and clientIp
  * from RequestContextService storage.
  */
-export async function logAdminAction(params: LogAdminActionParams) {
+export async function logAdminAction(
+  params: LogAdminActionParams,
+  tx?: Prisma.TransactionClient
+) {
   const context = RequestContextService.get();
 
   const userId = context?.employee?.id || null;
@@ -28,7 +32,9 @@ export async function logAdminAction(params: LogAdminActionParams) {
   const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
   const validEntityId = params.entityId && uuidRegex.test(params.entityId) ? params.entityId : null;
 
-  return prisma.audit.create({
+  const db = tx || prisma;
+
+  return db.audit.create({
     data: {
       userId,
       clientIp,
