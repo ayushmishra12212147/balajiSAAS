@@ -70,8 +70,9 @@ export async function middleware(request: NextRequest) {
   // 4. Double-Submit CSRF Protection for state-mutating requests
   const method = request.method.toUpperCase();
   const isMutating = ["POST", "PUT", "DELETE", "PATCH"].includes(method);
+  const isApiLogin = pathname === "/api/auth/login";
 
-  if (isMutating) {
+  if (isMutating && !isApiLogin) {
     const csrfCookie = request.cookies.get(AUTH_CONFIG.CSRF_COOKIE_NAME)?.value;
     const csrfHeader = request.headers.get(AUTH_CONFIG.CSRF_HEADER_NAME);
 
@@ -143,7 +144,8 @@ export async function middleware(request: NextRequest) {
 
   // 7. Inject self-bootstrapping CSRF token if missing
   const existingCsrfCookie = request.cookies.get(AUTH_CONFIG.CSRF_COOKIE_NAME)?.value;
-  if (!existingCsrfCookie) {
+  const existingCsrfClientCookie = request.cookies.get(`${AUTH_CONFIG.CSRF_COOKIE_NAME}_client`)?.value;
+  if (!existingCsrfCookie || !existingCsrfClientCookie) {
     const newCsrfToken = crypto.randomUUID();
     response.cookies.set(AUTH_CONFIG.CSRF_COOKIE_NAME, newCsrfToken, AUTH_CONFIG.COOKIE_SETTINGS);
     response.cookies.set(`${AUTH_CONFIG.CSRF_COOKIE_NAME}_client`, newCsrfToken, {

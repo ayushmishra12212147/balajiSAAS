@@ -93,7 +93,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               onClick={async () => {
                 await AuthClient.logout();
                 setUser(null);
-                router.push("/login");
+                window.location.href = "/login";
               }}
               className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-xs font-mono font-medium rounded text-zinc-200 border border-slate-700 cursor-pointer"
             >
